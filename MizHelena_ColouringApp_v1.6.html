@@ -6,13 +6,13 @@
 <title>Miz Helena Colouring App v1.6 — Silent Mode</title>
 <style>
  html,body{
-   margin:0;
-   font-family:'Poppins',system-ui,sans-serif;
+   margin:0;font-family:'Poppins',system-ui,sans-serif;
    background:linear-gradient(135deg,#ffeaf5,#e6f4ff,#fff5fb);
    color:#333;
  }
  header{text-align:center;padding:12px 0;}
  header h1{margin:0;font-size:1.8rem;}
+ header .icon{font-size:1.5rem;vertical-align:middle;}
  #toolbar{
    display:flex;justify-content:center;align-items:center;flex-wrap:wrap;
    background:rgba(255,255,255,0.9);padding:8px;gap:10px;
@@ -54,12 +54,12 @@
 </head>
 <body>
 <header>
- <h1>🖍️🌈 Miz Helena Colouring App v1.6</h1>
+ <h1><span class="icon">🖍️🌈</span> Miz Helena Colouring App v1.6</h1>
 </header>
 
 <div id="toolbar">
  <button id="drawBtn" class="active">🖍️ Draw</button>
- <button id="stickerBtn">🌸 Stickers</button>
+ <button id="stickerBtn">🌸 Sticker</button>
  <button id="eraseBtn">🩹 Erase</button>
  <button id="clearBtn">🧼 Clear</button>
  <button id="saveBtn">💾 Save</button>
@@ -97,87 +97,91 @@ let drawing=false,color="#000",size=12,mode="draw",currentImg=null,selectedStick
 
 document.getElementById("size").addEventListener("input",e=>size=+e.target.value);
 
-// Fix finger offset
+// accurate touch positioning
 function getCanvasPos(evt){
  const rect=canvas.getBoundingClientRect();
- const scaleX=canvas.width/rect.width;
- const scaleY=canvas.height/rect.height;
- const x=(evt.clientX-rect.left)*scaleX;
- const y=(evt.clientY-rect.top)*scaleY;
+ const scaleX=canvas.width/rect.width,scaleY=canvas.height/rect.height;
+ const x=(evt.clientX-rect.left)*scaleX,y=(evt.clientY-rect.top)*scaleY;
  return {x,y};
 }
 
-// Palette
-(function(){
- const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff",
- "#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3",
- "#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0",
- "#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
- const p=document.getElementById("palette");
- colours.forEach(c=>{
-   const d=document.createElement("div");
-   d.className="color"; d.style.background=c; d.onclick=()=>color=c;
-   p.appendChild(d);
- });
-})();
-
-// Thumbnails
-document.querySelectorAll("#thumbs img").forEach(img=>{
- img.onclick=()=>{
-   const i=new Image();
-   i.onload=()=>{currentImg=i;ctx.clearRect(0,0,800,800);ctx.drawImage(i,0,0,800,800);};
-   i.src=img.src;
- };
-});
-if(document.querySelector("#thumbs img")) document.querySelector("#thumbs img").click();
-
-// Drawing
+// draw lines
 function drawLine(pos){
- ctx.lineWidth=size; ctx.lineCap="round";
+ ctx.lineWidth=size;
+ ctx.lineCap="round";
  ctx.strokeStyle=(mode==="erase")?"#ffffff":color;
- ctx.lineTo(pos.x,pos.y); ctx.stroke();
- ctx.beginPath(); ctx.moveTo(pos.x,pos.y);
+ ctx.lineTo(pos.x,pos.y);
+ ctx.stroke();
+ ctx.beginPath();
+ ctx.moveTo(pos.x,pos.y);
 }
+
+// drawing + stickers
 canvas.addEventListener("pointerdown",e=>{
- if(mode!=="draw"&&mode!=="erase")return;
- drawing=true; drawLine(getCanvasPos(e));
+ const pos=getCanvasPos(e);
+ if(mode==="draw"||mode==="erase"){
+   drawing=true; drawLine(pos);
+ } else if(mode==="sticker" && selectedSticker){
+   const img=new Image(); img.src=selectedSticker;
+   img.onload=()=>ctx.drawImage(img,pos.x-30,pos.y-30,60,60);
+ }
 });
 canvas.addEventListener("pointermove",e=>{
- if(!drawing||(mode!=="draw"&&mode!=="erase"))return;
- drawLine(getCanvasPos(e));
+ if(drawing && (mode==="draw"||mode==="erase")) drawLine(getCanvasPos(e));
 });
 canvas.addEventListener("pointerup",()=>{drawing=false;ctx.beginPath();});
 
-// Toolbar
-document.getElementById("clearBtn").onclick=()=>{
- ctx.clearRect(0,0,800,800);
- if(currentImg)ctx.drawImage(currentImg,0,0,800,800);
-};
-document.getElementById("saveBtn").onclick=()=>{
- const l=document.createElement("a");
- l.download="MizHelena_Artwork.png"; l.href=canvas.toDataURL(); l.click();
-};
+// buttons
 ["draw","sticker","erase"].forEach(m=>{
  document.getElementById(m+"Btn").onclick=()=>{
    mode=m;
    document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
    document.getElementById(m+"Btn").classList.add("active");
-   selectedSticker=null;
  };
 });
 
-// 🌸 Stickers — Tap to place version
-document.querySelectorAll("#stickers img").forEach(st=>{
- st.addEventListener("click",()=>{selectedSticker=st.src; mode="sticker";});
-});
+// clear + save
+document.getElementById("clearBtn").onclick=()=>{
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ if(currentImg) ctx.drawImage(currentImg,0,0,canvas.width,canvas.height);
+};
+document.getElementById("saveBtn").onclick=()=>{
+ const link=document.createElement("a");
+ link.download="MizHelena_Artwork.png";
+ link.href=canvas.toDataURL();
+ link.click();
+};
 
-canvas.addEventListener("pointerdown",e=>{
- if(mode==="sticker" && selectedSticker){
-   const pos=getCanvasPos(e);
-   const img=new Image();
-   img.src=selectedSticker;
-   img.onload=()=>ctx.drawImage(img,pos.x-30,pos.y-30,60,60);
- }
+// colours
+(function(){
+ const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff","#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3","#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0","#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
+ const p=document.getElementById("palette");
+ colours.forEach(c=>{
+   const d=document.createElement("div");
+   d.className="color"; d.style.background=c;
+   d.onclick=()=>color=c;
+   p.appendChild(d);
+ });
+})();
+
+// load colouring pages
+document.querySelectorAll("#thumbs img").forEach(img=>{
+ img.onclick=()=>{
+   const i=new Image();
+   i.onload=()=>{currentImg=i;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(i,0,0,canvas.width,canvas.height);};
+   i.src=img.src;
+ };
+});
+if(document.querySelector("#thumbs img")) document.querySelector("#thumbs img").click();
+
+// select sticker
+document.querySelectorAll("#stickers img").forEach(st=>{
+ st.addEventListener("click",()=>{
+   selectedSticker=st.src;
+   mode="sticker";
+   document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
+   document.getElementById("stickerBtn").classList.add("active");
+ });
 });
 </script>
 </body>
