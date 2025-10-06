@@ -6,7 +6,8 @@
 <title>Miz Helena Colouring App v1.6 — Silent Mode</title>
 <style>
  html,body{
-   margin:0;font-family:'Poppins',system-ui,sans-serif;
+   margin:0;
+   font-family:'Poppins',system-ui,sans-serif;
    background:linear-gradient(135deg,#ffeaf5,#e6f4ff,#fff5fb);
    color:#333;
  }
@@ -95,12 +96,14 @@
 const canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");
 let drawing=false,color="#000",size=12,mode="draw",currentImg=null,selectedSticker=null;
 
-// perfect touch alignment
+// accurate touch position
 function getCanvasPos(evt){
  const rect=canvas.getBoundingClientRect();
  const scaleX=canvas.width/rect.width,scaleY=canvas.height/rect.height;
- const x=(evt.clientX-rect.left)*scaleX,y=(evt.clientY-rect.top)*scaleY;
- return {x,y};
+ return {
+   x:(evt.clientX-rect.left)*scaleX,
+   y:(evt.clientY-rect.top)*scaleY
+ };
 }
 
 // draw line
@@ -114,13 +117,14 @@ function drawLine(pos){
  ctx.moveTo(pos.x,pos.y);
 }
 
-// drawing and sticker placement
+// drawing + sticker placement
 canvas.addEventListener("pointerdown",e=>{
  const pos=getCanvasPos(e);
  if(mode==="draw"||mode==="erase"){
    drawing=true; drawLine(pos);
  } else if(mode==="sticker" && selectedSticker){
-   const img=new Image(); img.src=selectedSticker;
+   const img=new Image();
+   img.src=selectedSticker;
    img.onload=()=>ctx.drawImage(img,pos.x-30,pos.y-30,60,60);
  }
 });
@@ -129,7 +133,7 @@ canvas.addEventListener("pointermove",e=>{
 });
 canvas.addEventListener("pointerup",()=>{drawing=false;ctx.beginPath();});
 
-// palette colours
+// colour palette
 (function(){
  const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff","#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3","#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0","#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
  const p=document.getElementById("palette");
@@ -172,14 +176,13 @@ document.getElementById("saveBtn").onclick=()=>{
  link.click();
 };
 
-// sticker select (tap once, then tap canvas)
+// sticker select (no alert popup)
 document.querySelectorAll("#stickers img").forEach(st=>{
  st.addEventListener("click",()=>{
    selectedSticker=st.src;
    mode="sticker";
    document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
    document.getElementById("stickerBtn").classList.add("active");
-   alert("Sticker selected 🌸 Tap on the colouring page to place it!");
  });
 });
 </script>
