@@ -6,56 +6,52 @@
 <title>Miz Helena Colouring App v1.6 — Silent Mode</title>
 <style>
  html,body{
-   margin:0;
-   font-family:'Poppins',system-ui,sans-serif;
-   background:linear-gradient(135deg,#ffeaf5,#e6f4ff,#fff5fb);
-   color:#333;
+   margin:0; font-family:'Poppins',system-ui,sans-serif;
+   background:linear-gradient(135deg,#ffeaf5,#e6f4ff,#fff5fb); color:#333;
  }
  header{text-align:center;padding:12px 0;}
  header h1{margin:0;font-size:1.8rem;}
- header .icon{font-size:1.5rem;vertical-align:middle;}
  #toolbar{
    display:flex;justify-content:center;align-items:center;flex-wrap:wrap;
    background:rgba(255,255,255,0.9);padding:8px;gap:10px;
    box-shadow:0 2px 6px rgba(0,0,0,.1);position:sticky;top:0;z-index:10;
  }
  button{
-   border:none;border-radius:12px;background:white;
-   padding:8px 14px;font-size:.9rem;cursor:pointer;color:#333;
+   border:none;border-radius:12px;background:white;padding:8px 14px;font-size:.9rem;cursor:pointer;color:#333;
    box-shadow:0 2px 5px rgba(0,0,0,.1);transition:all .2s;
  }
  button:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,.15);}
  button.active{background:#ffe4f0;font-weight:bold;}
  .sizegroup{display:flex;align-items:center;gap:8px;background:white;border-radius:12px;
    padding:6px 10px;box-shadow:0 2px 5px rgba(0,0,0,.1);}
- .sizegroup label{font-size:.9rem;color:#444}
  .sizegroup input[type=range]{width:140px}
  #palette{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:10px;}
- .color{width:28px;height:28px;border-radius:50%;border:2px solid white;
-   box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer;}
+ .color{width:28px;height:28px;border-radius:50%;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer;}
  #thumbs{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
- #thumbs img{width:110px;border-radius:6px;cursor:pointer;
-   box-shadow:0 2px 5px rgba(0,0,0,.15);transition:.2s;}
+ #thumbs img{width:110px;border-radius:6px;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.15);transition:.2s;}
  #thumbs img:hover{transform:scale(1.05);}
- canvas{
-   display:block;margin:20px auto;border-radius:10px;
-   box-shadow:0 2px 6px rgba(0,0,0,.15);background:white;
-   max-width:95%;height:auto;
-   touch-action:none;
+
+ /* Two-layer canvas */
+ .canvas-wrap{position:relative;width:min(800px,95vw);margin:20px auto;}
+ #bgCanvas{
+   display:block;width:100%;height:auto;border-radius:10px;background:white;
+   box-shadow:0 2px 6px rgba(0,0,0,.15);
  }
+ #paintCanvas{
+   position:absolute;inset:0;width:100%;height:100%;
+   border-radius:10px;touch-action:none; /* finger drawing, no page scroll */
+ }
+
  #stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
- #stickers img{
-   width:60px;height:60px;cursor:pointer;border-radius:10px;
-   transition:transform .2s;box-shadow:0 2px 5px rgba(0,0,0,.1);
- }
+ #stickers img{width:60px;height:60px;cursor:pointer;border-radius:10px;transition:transform .2s;box-shadow:0 2px 5px rgba(0,0,0,.1);}
  #stickers img:hover{transform:scale(1.1);}
  footer{text-align:center;font-size:.9rem;color:#666;padding:14px 0 24px;}
- footer a{color:#888;text-decoration:none;}footer a:hover{text-decoration:underline;}
+ footer a{color:#888;text-decoration:none;} footer a:hover{text-decoration:underline;}
 </style>
 </head>
 <body>
 <header>
- <h1><span class="icon">🖍️🌈</span> Miz Helena Colouring App v1.6</h1>
+ <h1>🖍️🌈 Miz Helena Colouring App v1.6</h1>
 </header>
 
 <div id="toolbar">
@@ -77,7 +73,11 @@
  <img src="page4.png"><img src="page5.png"><img src="page6.png">
 </div>
 
-<canvas id="canvas" width="800" height="800"></canvas>
+<!-- Two stacked canvases -->
+<div class="canvas-wrap">
+  <canvas id="bgCanvas" width="800" height="800"></canvas>
+  <canvas id="paintCanvas" width="800" height="800"></canvas>
+</div>
 
 <div id="stickers">
  <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2764.png" alt="heart">
@@ -88,113 +88,134 @@
 </div>
 
 <footer>
- Made with ❤️ by Miz Helena Children’s Books · 
+ Made with ❤️ by Miz Helena Children’s Books ·
  <a href="https://mizhelenabooks.com.au" target="_blank">mizhelenabooks.com.au</a>
 </footer>
 
 <script>
-const canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");
+const bgCanvas = document.getElementById("bgCanvas");
+const paintCanvas = document.getElementById("paintCanvas");
+const bgCtx = bgCanvas.getContext("2d");
+const ctx = paintCanvas.getContext("2d");
+
 let drawing=false,color="#000",size=12,mode="draw",currentImg=null,selectedSticker=null;
 
-// 🖌️ Brush size
+// Brush size
 document.getElementById("size").addEventListener("input",e=>{
- size=parseInt(e.target.value);
+  size = parseInt(e.target.value,10);
 });
 
-// accurate touch/mouse pos
+// Accurate canvas position (uses top canvas for coords)
 function getCanvasPos(evt){
- const rect=canvas.getBoundingClientRect();
- const scaleX=canvas.width/rect.width,scaleY=canvas.height/rect.height;
- const clientX=evt.clientX||(evt.touches&&evt.touches[0].clientX);
- const clientY=evt.clientY||(evt.touches&&evt.touches[0].clientY);
- return {x:(clientX-rect.left)*scaleX,y:(clientY-rect.top)*scaleY};
+  const rect = paintCanvas.getBoundingClientRect();
+  const scaleX = paintCanvas.width / rect.width;
+  const scaleY = paintCanvas.height / rect.height;
+  const x = (evt.clientX - rect.left) * scaleX;
+  const y = (evt.clientY - rect.top) * scaleY;
+  return {x,y};
 }
 
-// draw/erase function
+// Draw line on PAINT layer only
 function drawLine(pos){
- ctx.lineWidth=size;
- ctx.lineCap="round";
- if(mode==="erase"){
-   ctx.globalCompositeOperation="destination-out";
- } else {
-   ctx.globalCompositeOperation="source-over";
-   ctx.strokeStyle=color;
- }
- ctx.lineTo(pos.x,pos.y);
- ctx.stroke();
- ctx.beginPath();
- ctx.moveTo(pos.x,pos.y);
+  ctx.lineWidth = size;
+  ctx.lineCap = "round";
+  if(mode==="erase"){
+    ctx.globalCompositeOperation = "destination-out"; // erase paint only
+  }else{
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = color;
+  }
+  ctx.lineTo(pos.x,pos.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(pos.x,pos.y);
 }
 
-// drawing and stickers
-canvas.addEventListener("pointerdown",e=>{
- const pos=getCanvasPos(e);
- if(mode==="draw"||mode==="erase"){
-   drawing=true;
-   ctx.beginPath();
-   ctx.moveTo(pos.x,pos.y);
- } else if(mode==="sticker" && selectedSticker){
-   const img=new Image();
-   img.src=selectedSticker;
-   img.onload=()=>ctx.drawImage(img,pos.x-30,pos.y-30,60,60);
- }
+// Pointer events on PAINT layer
+paintCanvas.addEventListener("pointerdown", e=>{
+  const pos = getCanvasPos(e);
+  if(mode==="draw"||mode==="erase"){
+    drawing = true;
+    ctx.beginPath();
+    ctx.moveTo(pos.x,pos.y);
+  }else if(mode==="sticker" && selectedSticker){
+    const img = new Image();
+    img.src = selectedSticker;
+    img.onload = ()=> ctx.drawImage(img,pos.x-30,pos.y-30,60,60);
+  }
 });
-canvas.addEventListener("pointermove",e=>{
- if(drawing&&(mode==="draw"||mode==="erase")) drawLine(getCanvasPos(e));
+paintCanvas.addEventListener("pointermove", e=>{
+  if(drawing && (mode==="draw"||mode==="erase")) drawLine(getCanvasPos(e));
 });
-canvas.addEventListener("pointerup",()=>{drawing=false;ctx.beginPath();ctx.globalCompositeOperation="source-over";});
+paintCanvas.addEventListener("pointerup", ()=>{
+  drawing=false;
+  ctx.beginPath();
+  ctx.globalCompositeOperation="source-over";
+});
 
-// palette
+// Palette
 (function(){
- const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff","#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3","#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0","#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
- const p=document.getElementById("palette");
- colours.forEach(c=>{
-   const d=document.createElement("div");
-   d.className="color"; d.style.background=c;
-   d.onclick=()=>color=c;
-   p.appendChild(d);
- });
+  const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff",
+  "#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3",
+  "#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0",
+  "#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
+  const p=document.getElementById("palette");
+  colours.forEach(c=>{
+    const d=document.createElement("div");
+    d.className="color"; d.style.background=c; d.onclick=()=>color=c;
+    p.appendChild(d);
+  });
 })();
 
-// thumbs
+// Load colouring page onto BG layer ONLY
 document.querySelectorAll("#thumbs img").forEach(img=>{
- img.onclick=()=>{
-   const i=new Image();
-   i.onload=()=>{currentImg=i;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(i,0,0,canvas.width,canvas.height);};
-   i.src=img.src;
- };
+  img.onclick=()=>{
+    const i=new Image();
+    i.onload=()=>{
+      currentImg=i;
+      bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
+      bgCtx.drawImage(i,0,0,bgCanvas.width,bgCanvas.height);
+    };
+    i.src=img.src;
+  };
 });
 if(document.querySelector("#thumbs img")) document.querySelector("#thumbs img").click();
 
-// modes
+// Modes
 ["draw","sticker","erase"].forEach(m=>{
- document.getElementById(m+"Btn").onclick=()=>{
-   mode=m;
-   document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
-   document.getElementById(m+"Btn").classList.add("active");
- };
+  document.getElementById(m+"Btn").onclick=()=>{
+    mode=m;
+    document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
+    document.getElementById(m+"Btn").classList.add("active");
+  };
 });
 
-// clear + save
+// Clear ONLY the paint layer (keep the page)
 document.getElementById("clearBtn").onclick=()=>{
- ctx.clearRect(0,0,canvas.width,canvas.height);
- if(currentImg) ctx.drawImage(currentImg,0,0,canvas.width,canvas.height);
-};
-document.getElementById("saveBtn").onclick=()=>{
- const link=document.createElement("a");
- link.download="MizHelena_Artwork.png";
- link.href=canvas.toDataURL();
- link.click();
+  ctx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
 };
 
-// stickers
+// Save = composite BG + PAINT into one image
+document.getElementById("saveBtn").onclick=()=>{
+  const out = document.createElement("canvas");
+  out.width = 800; out.height = 800;
+  const octx = out.getContext("2d");
+  octx.drawImage(bgCanvas,0,0);
+  octx.drawImage(paintCanvas,0,0);
+  const link=document.createElement("a");
+  link.download="MizHelena_Artwork.png";
+  link.href=out.toDataURL();
+  link.click();
+};
+
+// Stickers (tap to select, then tap canvas to place)
 document.querySelectorAll("#stickers img").forEach(st=>{
- st.addEventListener("click",()=>{
-   selectedSticker=st.src;
-   mode="sticker";
-   document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
-   document.getElementById("stickerBtn").classList.add("active");
- });
+  st.addEventListener("click",()=>{
+    selectedSticker=st.src;
+    mode="sticker";
+    document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
+    document.getElementById("stickerBtn").classList.add("active");
+  });
 });
 </script>
 </body>
