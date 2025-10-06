@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Yiayia & Sienna's Colouring Fun</title>
+<title>Yiayia & Sienna’s Colouring Fun</title>
 <style>
  html,body{
    margin:0; font-family:'Poppins',system-ui,sans-serif;
    background:linear-gradient(135deg,#ffeaf5,#e6f4ff,#fff5fb); color:#333;
  }
  header{text-align:center;padding:12px 0;}
- header h1{margin:0;font-size:1.8rem;}
+ header h1{margin:0;font-size:1.9rem;line-height:1.3;text-align:center;}
  #toolbar{
    display:flex;justify-content:center;align-items:center;flex-wrap:wrap;
    background:rgba(255,255,255,0.9);padding:8px;gap:10px;
@@ -30,8 +30,6 @@
  #thumbs{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
  #thumbs img{width:110px;border-radius:6px;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.15);transition:.2s;}
  #thumbs img:hover{transform:scale(1.05);}
-
- /* Two-layer canvas */
  .canvas-wrap{position:relative;width:min(800px,95vw);margin:20px auto;}
  #bgCanvas{
    display:block;width:100%;height:auto;border-radius:10px;background:white;
@@ -39,9 +37,8 @@
  }
  #paintCanvas{
    position:absolute;inset:0;width:100%;height:100%;
-   border-radius:10px;touch-action:none; /* finger drawing, no page scroll */
+   border-radius:10px;touch-action:none;
  }
-
  #stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
  #stickers img{width:60px;height:60px;cursor:pointer;border-radius:10px;transition:transform .2s;box-shadow:0 2px 5px rgba(0,0,0,.1);}
  #stickers img:hover{transform:scale(1.1);}
@@ -51,7 +48,7 @@
 </head>
 <body>
 <header>
- <h1>🖍️🌈 Yiayia & Sienna's Colouring Fun</h1>
+ <h1>🖍️🌈 Yiayia & Sienna’s Colouring Fun</h1>
 </header>
 
 <div id="toolbar">
@@ -73,7 +70,6 @@
  <img src="page4.png"><img src="page5.png"><img src="page6.png">
 </div>
 
-<!-- Two stacked canvases -->
 <div class="canvas-wrap">
   <canvas id="bgCanvas" width="800" height="800"></canvas>
   <canvas id="paintCanvas" width="800" height="800"></canvas>
@@ -93,37 +89,29 @@
 </footer>
 
 <script>
-const bgCanvas = document.getElementById("bgCanvas");
-const paintCanvas = document.getElementById("paintCanvas");
-const bgCtx = bgCanvas.getContext("2d");
-const ctx = paintCanvas.getContext("2d");
+const bgCanvas=document.getElementById("bgCanvas");
+const paintCanvas=document.getElementById("paintCanvas");
+const bgCtx=bgCanvas.getContext("2d");
+const ctx=paintCanvas.getContext("2d");
 
 let drawing=false,color="#000",size=12,mode="draw",currentImg=null,selectedSticker=null;
+document.getElementById("size").addEventListener("input",e=>size=parseInt(e.target.value,10));
 
-// Brush size
-document.getElementById("size").addEventListener("input",e=>{
-  size = parseInt(e.target.value,10);
-});
-
-// Accurate canvas position (uses top canvas for coords)
 function getCanvasPos(evt){
-  const rect = paintCanvas.getBoundingClientRect();
-  const scaleX = paintCanvas.width / rect.width;
-  const scaleY = paintCanvas.height / rect.height;
-  const x = (evt.clientX - rect.left) * scaleX;
-  const y = (evt.clientY - rect.top) * scaleY;
-  return {x,y};
+  const rect=paintCanvas.getBoundingClientRect();
+  const scaleX=paintCanvas.width/rect.width;
+  const scaleY=paintCanvas.height/rect.height;
+  return {x:(evt.clientX-rect.left)*scaleX,y:(evt.clientY-rect.top)*scaleY};
 }
 
-// Draw line on PAINT layer only
 function drawLine(pos){
-  ctx.lineWidth = size;
-  ctx.lineCap = "round";
+  ctx.lineWidth=size;
+  ctx.lineCap="round";
   if(mode==="erase"){
-    ctx.globalCompositeOperation = "destination-out"; // erase paint only
+    ctx.globalCompositeOperation="destination-out";
   }else{
-    ctx.globalCompositeOperation = "source-over";
-    ctx.strokeStyle = color;
+    ctx.globalCompositeOperation="source-over";
+    ctx.strokeStyle=color;
   }
   ctx.lineTo(pos.x,pos.y);
   ctx.stroke();
@@ -131,27 +119,20 @@ function drawLine(pos){
   ctx.moveTo(pos.x,pos.y);
 }
 
-// Pointer events on PAINT layer
-paintCanvas.addEventListener("pointerdown", e=>{
-  const pos = getCanvasPos(e);
+paintCanvas.addEventListener("pointerdown",e=>{
+  const pos=getCanvasPos(e);
   if(mode==="draw"||mode==="erase"){
-    drawing = true;
-    ctx.beginPath();
-    ctx.moveTo(pos.x,pos.y);
-  }else if(mode==="sticker" && selectedSticker){
-    const img = new Image();
-    img.src = selectedSticker;
-    img.onload = ()=> ctx.drawImage(img,pos.x-30,pos.y-30,60,60);
+    drawing=true;ctx.beginPath();ctx.moveTo(pos.x,pos.y);
+  }else if(mode==="sticker"&&selectedSticker){
+    const img=new Image();
+    img.src=selectedSticker;
+    img.onload=()=>ctx.drawImage(img,pos.x-30,pos.y-30,60,60);
   }
 });
-paintCanvas.addEventListener("pointermove", e=>{
-  if(drawing && (mode==="draw"||mode==="erase")) drawLine(getCanvasPos(e));
+paintCanvas.addEventListener("pointermove",e=>{
+  if(drawing&&(mode==="draw"||mode==="erase"))drawLine(getCanvasPos(e));
 });
-paintCanvas.addEventListener("pointerup", ()=>{
-  drawing=false;
-  ctx.beginPath();
-  ctx.globalCompositeOperation="source-over";
-});
+paintCanvas.addEventListener("pointerup",()=>{drawing=false;ctx.beginPath();ctx.globalCompositeOperation="source-over";});
 
 // Palette
 (function(){
@@ -162,26 +143,21 @@ paintCanvas.addEventListener("pointerup", ()=>{
   const p=document.getElementById("palette");
   colours.forEach(c=>{
     const d=document.createElement("div");
-    d.className="color"; d.style.background=c; d.onclick=()=>color=c;
-    p.appendChild(d);
+    d.className="color";d.style.background=c;d.onclick=()=>color=c;p.appendChild(d);
   });
 })();
 
-// Load colouring page onto BG layer ONLY
+// Thumbnails
 document.querySelectorAll("#thumbs img").forEach(img=>{
   img.onclick=()=>{
     const i=new Image();
-    i.onload=()=>{
-      currentImg=i;
-      bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
-      bgCtx.drawImage(i,0,0,bgCanvas.width,bgCanvas.height);
-    };
+    i.onload=()=>{currentImg=i;bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);bgCtx.drawImage(i,0,0,bgCanvas.width,bgCanvas.height);};
     i.src=img.src;
   };
 });
-if(document.querySelector("#thumbs img")) document.querySelector("#thumbs img").click();
+if(document.querySelector("#thumbs img"))document.querySelector("#thumbs img").click();
 
-// Modes
+// Toolbar modes
 ["draw","sticker","erase"].forEach(m=>{
   document.getElementById(m+"Btn").onclick=()=>{
     mode=m;
@@ -190,25 +166,35 @@ if(document.querySelector("#thumbs img")) document.querySelector("#thumbs img").
   };
 });
 
-// Clear ONLY the paint layer (keep the page)
-document.getElementById("clearBtn").onclick=()=>{
-  ctx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
-};
+// Clear paint layer only
+document.getElementById("clearBtn").onclick=()=>{ctx.clearRect(0,0,paintCanvas.width,paintCanvas.height);};
 
-// Save = composite BG + PAINT into one image
+// ✅ UNIVERSAL SAVE FIX (Desktop + Mobile)
 document.getElementById("saveBtn").onclick=()=>{
-  const out = document.createElement("canvas");
-  out.width = 800; out.height = 800;
-  const octx = out.getContext("2d");
+  const out=document.createElement("canvas");
+  out.width=800;out.height=800;
+  const octx=out.getContext("2d");
   octx.drawImage(bgCanvas,0,0);
   octx.drawImage(paintCanvas,0,0);
-  const link=document.createElement("a");
-  link.download="MizHelena_Artwork.png";
-  link.href=out.toDataURL();
-  link.click();
+  const dataURL=out.toDataURL("image/png");
+
+  if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)){
+    const newTab=window.open();
+    newTab.document.write("<title>Yiayia & Sienna’s Artwork</title>");
+    newTab.document.write("<img src='"+dataURL+"' style='width:100%;height:auto;display:block;margin:auto;'>");
+    newTab.document.write("<p style='text-align:center;font-family:sans-serif;'>Tap and hold to save your artwork 🎨</p>");
+    newTab.document.close();
+  }else{
+    const link=document.createElement("a");
+    link.href=dataURL;
+    link.download="Yiayia_Sienna_Artwork.png";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 };
 
-// Stickers (tap to select, then tap canvas to place)
+// Stickers
 document.querySelectorAll("#stickers img").forEach(st=>{
   st.addEventListener("click",()=>{
     selectedSticker=st.src;
@@ -220,5 +206,3 @@ document.querySelectorAll("#stickers img").forEach(st=>{
 </script>
 </body>
 </html>
-
-
