@@ -92,11 +92,11 @@
 </footer>
 
 <script>
-const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+const canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");
 let drawing=false,color="#000",size=12,mode="draw",currentImg=null;
-document.getElementById('size').addEventListener('input',e=>size=+e.target.value);
+document.getElementById("size").addEventListener("input",e=>size=+e.target.value);
 
-// touch alignment fix
+// scale helper
 function getCanvasPos(evt){
  const rect=canvas.getBoundingClientRect();
  const scaleX=canvas.width/rect.width;
@@ -106,70 +106,56 @@ function getCanvasPos(evt){
  return {x,y};
 }
 
-// create palette
-function createPalette(){
+// palette
+(function(){
  const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff",
  "#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3",
  "#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0",
  "#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
- const p=document.getElementById('palette');
+ const p=document.getElementById("palette");
  colours.forEach(c=>{
-   const div=document.createElement('div');
-   div.className='color';
-   div.style.background=c;
-   div.onclick=()=>color=c;
-   p.appendChild(div);
+   const d=document.createElement("div");
+   d.className="color"; d.style.background=c;
+   d.onclick=()=>color=c;
+   p.appendChild(d);
  });
-}
-createPalette();
+})();
 
 // thumbnails
-const thumbs=document.querySelectorAll('#thumbs img');
-thumbs.forEach(img=>{
+document.querySelectorAll("#thumbs img").forEach(img=>{
  img.onclick=()=>{
    const i=new Image();
-   i.onload=()=>{
-     currentImg=i;
-     ctx.clearRect(0,0,800,800);
-     ctx.drawImage(i,0,0,800,800);
-   };
+   i.onload=()=>{currentImg=i;ctx.clearRect(0,0,800,800);ctx.drawImage(i,0,0,800,800);};
    i.src=img.src;
  };
 });
-if(thumbs[0]) thumbs[0].click();
+if(document.querySelector("#thumbs img")) document.querySelector("#thumbs img").click();
 
-// draw function
+// draw
 function drawLine(pos){
- ctx.lineWidth=size;
- ctx.lineCap="round";
+ ctx.lineWidth=size; ctx.lineCap="round";
  ctx.strokeStyle=(mode==="erase")?"#ffffff":color;
- ctx.lineTo(pos.x,pos.y);
- ctx.stroke();
- ctx.beginPath();
- ctx.moveTo(pos.x,pos.y);
+ ctx.lineTo(pos.x,pos.y); ctx.stroke();
+ ctx.beginPath(); ctx.moveTo(pos.x,pos.y);
 }
-
-// drawing listeners
-canvas.addEventListener('pointerdown',e=>{
- if(mode!=="draw" && mode!=="erase") return;
+canvas.addEventListener("pointerdown",e=>{
+ if(mode!=="draw"&&mode!=="erase")return;
  drawing=true; drawLine(getCanvasPos(e));
 });
-canvas.addEventListener('pointermove',e=>{
- if(!drawing || (mode!=="draw" && mode!=="erase")) return;
+canvas.addEventListener("pointermove",e=>{
+ if(!drawing||(mode!=="draw"&&mode!=="erase"))return;
  drawLine(getCanvasPos(e));
 });
-canvas.addEventListener('pointerup',()=>{drawing=false;ctx.beginPath();});
+canvas.addEventListener("pointerup",()=>{drawing=false;ctx.beginPath();});
 
-// buttons
-document.getElementById('clearBtn').onclick=()=>{
+// toolbar
+document.getElementById("clearBtn").onclick=()=>{
  ctx.clearRect(0,0,800,800);
- if(currentImg) ctx.drawImage(currentImg,0,0,800,800);
+ if(currentImg)ctx.drawImage(currentImg,0,0,800,800);
 };
-document.getElementById('saveBtn').onclick=()=>{
- const link=document.createElement('a');
- link.download='MizHelena_Artwork.png';
- link.href=canvas.toDataURL();
- link.click();
+document.getElementById("saveBtn").onclick=()=>{
+ const l=document.createElement("a");
+ l.download="MizHelena_Artwork.png"; l.href=canvas.toDataURL(); l.click();
 };
 ["draw","sticker","erase"].forEach(m=>{
  document.getElementById(m+"Btn").onclick=()=>{
@@ -179,27 +165,27 @@ document.getElementById('saveBtn').onclick=()=>{
  };
 });
 
-// 🌸 Stickers (drag + drop on canvas)
-const stickers=document.querySelectorAll('#stickers img');
+// stickers drag & precise drop
+const stickers=document.querySelectorAll("#stickers img");
 let draggedSticker=null;
 
 stickers.forEach(st=>{
- st.addEventListener('dragstart',e=>{
-   draggedSticker=st;
- });
+ st.setAttribute("draggable","true");
+ st.addEventListener("dragstart",()=>draggedSticker=st);
 });
 
-// allow dropping on canvas
-canvas.addEventListener('dragover',e=>e.preventDefault());
-canvas.addEventListener('drop',e=>{
- if(!draggedSticker) return;
+canvas.addEventListener("dragover",e=>e.preventDefault());
+canvas.addEventListener("drop",e=>{
+ if(!draggedSticker)return;
  e.preventDefault();
  const rect=canvas.getBoundingClientRect();
- const x=(e.clientX-rect.left)*(canvas.width/rect.width)-40;
- const y=(e.clientY-rect.top)*(canvas.height/rect.height)-40;
+ const scaleX=canvas.width/rect.width;
+ const scaleY=canvas.height/rect.height;
+ const x=(e.clientX-rect.left)*scaleX-30;
+ const y=(e.clientY-rect.top)*scaleY-30;
  const img=new Image();
  img.src=draggedSticker.src;
- img.onload=()=>ctx.drawImage(img,x,y,80,80);
+ img.onload=()=>ctx.drawImage(img,x,y,60,60);
  draggedSticker=null;
 });
 </script>
