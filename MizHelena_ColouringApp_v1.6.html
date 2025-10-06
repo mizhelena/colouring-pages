@@ -96,7 +96,7 @@ const canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");
 let drawing=false,color="#000",size=12,mode="draw",currentImg=null;
 document.getElementById("size").addEventListener("input",e=>size=+e.target.value);
 
-// scale helper
+// Fix finger offset scaling
 function getCanvasPos(evt){
  const rect=canvas.getBoundingClientRect();
  const scaleX=canvas.width/rect.width;
@@ -106,7 +106,7 @@ function getCanvasPos(evt){
  return {x,y};
 }
 
-// palette
+// Colour palette
 (function(){
  const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff",
  "#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3",
@@ -114,14 +114,14 @@ function getCanvasPos(evt){
  "#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
  const p=document.getElementById("palette");
  colours.forEach(c=>{
-   const d=document.createElement("div");
-   d.className="color"; d.style.background=c;
-   d.onclick=()=>color=c;
-   p.appendChild(d);
+   const div=document.createElement("div");
+   div.className="color"; div.style.background=c;
+   div.onclick=()=>color=c;
+   p.appendChild(div);
  });
 })();
 
-// thumbnails
+// Thumbnails
 document.querySelectorAll("#thumbs img").forEach(img=>{
  img.onclick=()=>{
    const i=new Image();
@@ -131,7 +131,7 @@ document.querySelectorAll("#thumbs img").forEach(img=>{
 });
 if(document.querySelector("#thumbs img")) document.querySelector("#thumbs img").click();
 
-// draw
+// Drawing
 function drawLine(pos){
  ctx.lineWidth=size; ctx.lineCap="round";
  ctx.strokeStyle=(mode==="erase")?"#ffffff":color;
@@ -148,7 +148,7 @@ canvas.addEventListener("pointermove",e=>{
 });
 canvas.addEventListener("pointerup",()=>{drawing=false;ctx.beginPath();});
 
-// toolbar
+// Toolbar
 document.getElementById("clearBtn").onclick=()=>{
  ctx.clearRect(0,0,800,800);
  if(currentImg)ctx.drawImage(currentImg,0,0,800,800);
@@ -165,7 +165,7 @@ document.getElementById("saveBtn").onclick=()=>{
  };
 });
 
-// stickers drag & precise drop
+// 🌸 Stickers (drag + precise drop)
 const stickers=document.querySelectorAll("#stickers img");
 let draggedSticker=null;
 
@@ -179,10 +179,12 @@ canvas.addEventListener("drop",e=>{
  if(!draggedSticker)return;
  e.preventDefault();
  const rect=canvas.getBoundingClientRect();
+ const scrollX=window.scrollX||document.documentElement.scrollLeft;
+ const scrollY=window.scrollY||document.documentElement.scrollTop;
  const scaleX=canvas.width/rect.width;
  const scaleY=canvas.height/rect.height;
- const x=(e.clientX-rect.left)*scaleX-30;
- const y=(e.clientY-rect.top)*scaleY-30;
+ const x=(e.clientX+scrollX-rect.left)*scaleX-30;
+ const y=(e.clientY+scrollY-rect.top)*scaleY-30;
  const img=new Image();
  img.src=draggedSticker.src;
  img.onload=()=>ctx.drawImage(img,x,y,60,60);
