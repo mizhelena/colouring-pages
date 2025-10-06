@@ -44,7 +44,7 @@
  }
  #stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
  #stickers img{
-   width:60px;height:60px;cursor:grab;border-radius:10px;
+   width:60px;height:60px;cursor:pointer;border-radius:10px;
    transition:transform .2s;box-shadow:0 2px 5px rgba(0,0,0,.1);
  }
  #stickers img:hover{transform:scale(1.1);}
@@ -93,10 +93,11 @@
 
 <script>
 const canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");
-let drawing=false,color="#000",size=12,mode="draw",currentImg=null;
+let drawing=false,color="#000",size=12,mode="draw",currentImg=null,selectedSticker=null;
+
 document.getElementById("size").addEventListener("input",e=>size=+e.target.value);
 
-// Fix finger offset scaling
+// Fix finger offset
 function getCanvasPos(evt){
  const rect=canvas.getBoundingClientRect();
  const scaleX=canvas.width/rect.width;
@@ -106,7 +107,7 @@ function getCanvasPos(evt){
  return {x,y};
 }
 
-// Colour palette
+// Palette
 (function(){
  const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff",
  "#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3",
@@ -114,10 +115,9 @@ function getCanvasPos(evt){
  "#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
  const p=document.getElementById("palette");
  colours.forEach(c=>{
-   const div=document.createElement("div");
-   div.className="color"; div.style.background=c;
-   div.onclick=()=>color=c;
-   p.appendChild(div);
+   const d=document.createElement("div");
+   d.className="color"; d.style.background=c; d.onclick=()=>color=c;
+   p.appendChild(d);
  });
 })();
 
@@ -162,33 +162,22 @@ document.getElementById("saveBtn").onclick=()=>{
    mode=m;
    document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
    document.getElementById(m+"Btn").classList.add("active");
+   selectedSticker=null;
  };
 });
 
-// 🌸 Stickers (drag + precise drop)
-const stickers=document.querySelectorAll("#stickers img");
-let draggedSticker=null;
-
-stickers.forEach(st=>{
- st.setAttribute("draggable","true");
- st.addEventListener("dragstart",()=>draggedSticker=st);
+// 🌸 Stickers — Tap to place version
+document.querySelectorAll("#stickers img").forEach(st=>{
+ st.addEventListener("click",()=>{selectedSticker=st.src; mode="sticker";});
 });
 
-canvas.addEventListener("dragover",e=>e.preventDefault());
-canvas.addEventListener("drop",e=>{
- if(!draggedSticker)return;
- e.preventDefault();
- const rect=canvas.getBoundingClientRect();
- const scrollX=window.scrollX||document.documentElement.scrollLeft;
- const scrollY=window.scrollY||document.documentElement.scrollTop;
- const scaleX=canvas.width/rect.width;
- const scaleY=canvas.height/rect.height;
- const x=(e.clientX+scrollX-rect.left)*scaleX-30;
- const y=(e.clientY+scrollY-rect.top)*scaleY-30;
- const img=new Image();
- img.src=draggedSticker.src;
- img.onload=()=>ctx.drawImage(img,x,y,60,60);
- draggedSticker=null;
+canvas.addEventListener("pointerdown",e=>{
+ if(mode==="sticker" && selectedSticker){
+   const pos=getCanvasPos(e);
+   const img=new Image();
+   img.src=selectedSticker;
+   img.onload=()=>ctx.drawImage(img,pos.x-30,pos.y-30,60,60);
+ }
 });
 </script>
 </body>
