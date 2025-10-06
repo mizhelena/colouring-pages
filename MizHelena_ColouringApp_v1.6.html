@@ -44,7 +44,7 @@
  }
  #stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
  #stickers img{
-   width:60px;height:60px;cursor:pointer;border-radius:10px;
+   width:60px;height:60px;cursor:grab;border-radius:10px;
    transition:transform .2s;box-shadow:0 2px 5px rgba(0,0,0,.1);
    touch-action:none;
  }
@@ -98,24 +98,26 @@ const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
 let drawing=false,color="#000",size=12,mode="draw",currentImg=null;
 document.getElementById('size').addEventListener('input',e=>size=+e.target.value);
 
-// helper to fix finger offset perfectly
-function getCanvasPos(evt) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const x = (evt.clientX - rect.left) * scaleX;
-  const y = (evt.clientY - rect.top) * scaleY;
-  return {x, y};
+// fix finger offset
+function getCanvasPos(evt){
+ const rect = canvas.getBoundingClientRect();
+ const scaleX = canvas.width / rect.width;
+ const scaleY = canvas.height / rect.height;
+ return {
+   x: (evt.clientX - rect.left) * scaleX,
+   y: (evt.clientY - rect.top) * scaleY
+ };
 }
 
-// Create color palette
+// palette
 function createPalette(){
- const c=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff","#7f8c8d","#808000","#ffd700",
- "#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3","#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176",
- "#ffb347","#90ee90","#e0e0e0","#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
+ const c=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff",
+ "#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3",
+ "#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0",
+ "#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
  const p=document.getElementById('palette');
  c.forEach(x=>{
-   let d=document.createElement('div');
+   const d=document.createElement('div');
    d.className='color';
    d.style.background=x;
    d.onclick=()=>color=x;
@@ -124,11 +126,11 @@ function createPalette(){
 }
 createPalette();
 
-// Thumbnails
+// thumbnails
 const thumbs=document.querySelectorAll('#thumbs img');
 thumbs.forEach(img=>{
  img.onclick=()=>{
-   let i=new Image();
+   const i=new Image();
    i.onload=()=>{
      currentImg=i;
      ctx.clearRect(0,0,800,800);
@@ -139,7 +141,7 @@ thumbs.forEach(img=>{
 });
 if(thumbs[0]) thumbs[0].click();
 
-// Drawing logic
+// draw
 function drawLine(pos){
  ctx.lineWidth=size;
  ctx.lineCap="round";
@@ -153,8 +155,7 @@ function drawLine(pos){
 canvas.addEventListener('pointerdown',e=>{
  if(mode==="draw"||mode==="erase"){
    drawing=true;
-   const pos=getCanvasPos(e);
-   drawLine(pos);
+   drawLine(getCanvasPos(e));
  }
 });
 canvas.addEventListener('pointermove',e=>{
@@ -162,13 +163,13 @@ canvas.addEventListener('pointermove',e=>{
 });
 canvas.addEventListener('pointerup',()=>{drawing=false;ctx.beginPath();});
 
-// Buttons
+// buttons
 document.getElementById('clearBtn').onclick=()=>{
  ctx.clearRect(0,0,800,800);
  if(currentImg) ctx.drawImage(currentImg,0,0,800,800);
 };
 document.getElementById('saveBtn').onclick=()=>{
- let l=document.createElement('a');
+ const l=document.createElement('a');
  l.download='MizHelena_Artwork.png';
  l.href=canvas.toDataURL();
  l.click();
@@ -181,43 +182,64 @@ document.getElementById('saveBtn').onclick=()=>{
  };
 });
 
-// Stickers (pointer events handle both touch + mouse)
+// Stickers – handles both touch and mouse
 const stickerBar=document.getElementById('stickers');
-let selectedSticker=null;
+let movingSticker=null;
 
+function startStickerDrag(x,y,src){
+ movingSticker=new Image();
+ movingSticker.src=src;
+ movingSticker.style.position='absolute';
+ movingSticker.style.width='80px';
+ movingSticker.style.left=x-40+'px';
+ movingSticker.style.top=y-40+'px';
+ movingSticker.style.pointerEvents='none';
+ document.body.appendChild(movingSticker);
+}
+
+function endStickerDrag(x,y){
+ if(!movingSticker) return;
+ const rect=canvas.getBoundingClientRect();
+ const cx=x-rect.left-40, cy=y-rect.top-40;
+ if(cx>0&&cy>0&&cx<rect.width&&cy<rect.height){
+   const img=new Image();
+   img.src=movingSticker.src;
+   img.onload=()=>ctx.drawImage(img,cx,cy,80,80);
+ }
+ movingSticker.remove();
+ movingSticker=null;
+}
+
+// mouse + touch
 stickerBar.querySelectorAll('img').forEach(st=>{
- st.addEventListener('pointerdown',e=>{
+ st.addEventListener('mousedown',e=>{
    e.preventDefault();
-   selectedSticker=st.cloneNode();
-   selectedSticker.style.position='absolute';
-   selectedSticker.style.width='80px';
-   selectedSticker.style.pointerEvents='none';
-   selectedSticker.style.left=e.pageX-40+'px';
-   selectedSticker.style.top=e.pageY-40+'px';
-   document.body.appendChild(selectedSticker);
+   startStickerDrag(e.pageX,e.pageY,st.src);
+ });
+ st.addEventListener('touchstart',e=>{
+   e.preventDefault();
+   const t=e.touches[0];
+   startStickerDrag(t.pageX,t.pageY,st.src);
  });
 });
 
-window.addEventListener('pointermove',e=>{
- if(selectedSticker){
-   selectedSticker.style.left=e.pageX-40+'px';
-   selectedSticker.style.top=e.pageY-40+'px';
+window.addEventListener('mousemove',e=>{
+ if(movingSticker){
+   movingSticker.style.left=e.pageX-40+'px';
+   movingSticker.style.top=e.pageY-40+'px';
  }
 });
-
-window.addEventListener('pointerup',e=>{
- if(selectedSticker){
-   const rect=canvas.getBoundingClientRect();
-   const x=e.clientX-rect.left-40;
-   const y=e.clientY-rect.top-40;
-   if(x>0&&y>0&&x<rect.width&&y<rect.height){
-     const img=new Image();
-     img.src=selectedSticker.src;
-     img.onload=()=>ctx.drawImage(img,x,y,80,80);
-   }
-   selectedSticker.remove();
-   selectedSticker=null;
+window.addEventListener('touchmove',e=>{
+ if(movingSticker){
+   const t=e.touches[0];
+   movingSticker.style.left=t.pageX-40+'px';
+   movingSticker.style.top=t.pageY-40+'px';
  }
+});
+window.addEventListener('mouseup',e=>endStickerDrag(e.pageX,e.pageY));
+window.addEventListener('touchend',e=>{
+ const t=e.changedTouches[0];
+ endStickerDrag(t.pageX,t.pageY);
 });
 </script>
 </body>
