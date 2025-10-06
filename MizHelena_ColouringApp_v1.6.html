@@ -94,9 +94,10 @@
 </footer>
 
 <script>
-const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
-let drawing=false,color="#000",size=12,mode="draw",currentImg=null;
-document.getElementById('size').addEventListener('input',e=>size=+e.target.value);
+const canvas = document.getElementById('canvas'),
+      ctx = canvas.getContext('2d');
+let drawing = false, color = "#000", size = 12, mode = "draw", currentImg = null;
+document.getElementById('size').addEventListener('input', e => size = +e.target.value);
 
 // helper to fix finger offset perfectly
 function getCanvasPos(evt) {
@@ -117,118 +118,10 @@ function getCanvasPos(evt) {
   };
 }
 
-function createPalette(){
- const c=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff","#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3","#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0","#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
- const p=document.getElementById('palette');
- c.forEach(x=>{let d=document.createElement('div');d.className='color';d.style.background=x;d.onclick=()=>color=x;p.appendChild(d);});
-}
-createPalette();
-
-const thumbs=document.querySelectorAll('#thumbs img');
-thumbs.forEach(img=>{
- img.onclick=()=>{
-   let i=new Image();
-   i.onload=()=>{
-     currentImg=i;
-     ctx.clearRect(0,0,800,800);
-     ctx.drawImage(i,0,0,800,800);
-   };
-   i.src=img.src;
- };
-});
-if(thumbs[0]) thumbs[0].click();
-
-function drawLine(pos){
- ctx.lineWidth=size;
- ctx.lineCap="round";
- ctx.strokeStyle=(mode==="erase")?"#ffffff":color;
- ctx.lineTo(pos.x,pos.y);
- ctx.stroke();
- ctx.beginPath();
- ctx.moveTo(pos.x,pos.y);
-}
-
-canvas.addEventListener('mousedown',e=>{
- if(mode==="draw"||mode==="erase"){
-   drawing=true;
-   const pos=getCanvasPos(e);
-   drawLine(pos);
- }
-});
-canvas.addEventListener('mouseup',()=>{drawing=false;ctx.beginPath();});
-canvas.addEventListener('mousemove',e=>{
- if(drawing){
-   const pos=getCanvasPos(e);
-   drawLine(pos);
- }
-});
-
-// --- Touch support for mobile devices ---
-canvas.addEventListener("touchstart",(e)=>{
- e.preventDefault();
- drawing=true;
- const pos=getCanvasPos(e);
- ctx.beginPath();
- ctx.moveTo(pos.x,pos.y);
-});
-canvas.addEventListener("touchend",()=>{drawing=false;ctx.beginPath();});
-canvas.addEventListener("touchmove",(e)=>{
- e.preventDefault();
- if(!drawing)return;
- const pos=getCanvasPos(e);
- drawLine(pos);
-});
-// --- End touch support ---
-
-document.getElementById('clearBtn').onclick=()=>{
- ctx.clearRect(0,0,800,800);
- if(currentImg)ctx.drawImage(currentImg,0,0,800,800);
-};
-document.getElementById('saveBtn').onclick=()=>{
- let l=document.createElement('a');
- l.download='MizHelena_Artwork.png';
- l.href=canvas.toDataURL();
- l.click();
-};
-["draw","sticker","select","erase"].forEach(m=>{
- document.getElementById(m+"Btn").onclick=()=>{
-   mode=m;
-   document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
-   document.getElementById(m+"Btn").classList.add("active");
- };
-});
-
-// Stickers
-const stickerBar=document.getElementById('stickers');
-let selectedSticker=null;
-stickerBar.querySelectorAll('img').forEach(st=>{
- st.addEventListener('mousedown',()=>{
-   selectedSticker=st.cloneNode();
-   selectedSticker.style.position='absolute';
-   selectedSticker.style.width='80px';
-   selectedSticker.style.cursor='grabbing';
-   document.body.appendChild(selectedSticker);
- });
-});
-window.addEventListener('mousemove',e=>{
- if(selectedSticker){
-   selectedSticker.style.left=e.pageX-40+'px';
-   selectedSticker.style.top=e.pageY-40+'px';
- }
-});
-window.addEventListener('mouseup',e=>{
- if(selectedSticker){
-   const rect=canvas.getBoundingClientRect();
-   const x=e.clientX-rect.left-40,y=e.clientY-rect.top-40;
-   if(x>0&&y>0&&x<rect.width&&y<rect.height){
-     const img=new Image();
-     img.src=selectedSticker.src;
-     img.onload=()=>ctx.drawImage(img,x,y,80,80);
-   }
-   selectedSticker.remove();
-   selectedSticker=null;
- }
-});
-</script>
-</body>
-</html>
+function createPalette() {
+  const colors = ["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff","#7f8c8d","#808000",
+  "#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3","#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db",
+  "#fff176","#ffb347","#90ee90","#e0e0e0","#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
+  const palette = document.getElementById('palette');
+  colors.forEach(x => {
+    let d = document.c
