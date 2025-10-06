@@ -127,6 +127,20 @@ if(thumbs[0]) thumbs[0].click();
 canvas.addEventListener('mousedown',e=>{if(mode==="draw"||mode==="erase"){drawing=true;draw(e);playPop();}});
 canvas.addEventListener('mouseup',()=>{drawing=false;ctx.beginPath();});
 canvas.addEventListener('mousemove',e=>{if(drawing){draw(e);playPop();}});
+ // --- Touch support for mobile devices ---
+canvas.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  startPosition(e.touches[0]);
+});
+
+canvas.addEventListener("touchend", endPosition);
+
+canvas.addEventListener("touchmove", (e) => {
+  e.preventDefault();
+  draw(e.touches[0]);
+});
+// --- End touch support ---
+
 function draw(e){
  if(!drawing)return;
  const r=canvas.getBoundingClientRect();
@@ -160,3 +174,4 @@ window.addEventListener('mouseup',e=>{
 </script>
 </body>
 </html>
+
