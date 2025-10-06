@@ -96,13 +96,20 @@
 const canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");
 let drawing=false,color="#000",size=12,mode="draw",currentImg=null,selectedSticker=null;
 
-// accurate touch position
+// 🖌️ update brush size
+document.getElementById("size").addEventListener("input",e=>{
+ size=parseInt(e.target.value);
+});
+
+// accurate touch/mouse position
 function getCanvasPos(evt){
  const rect=canvas.getBoundingClientRect();
  const scaleX=canvas.width/rect.width,scaleY=canvas.height/rect.height;
+ const clientX = evt.clientX || (evt.touches && evt.touches[0].clientX);
+ const clientY = evt.clientY || (evt.touches && evt.touches[0].clientY);
  return {
-   x:(evt.clientX-rect.left)*scaleX,
-   y:(evt.clientY-rect.top)*scaleY
+   x:(clientX-rect.left)*scaleX,
+   y:(clientY-rect.top)*scaleY
  };
 }
 
@@ -121,7 +128,9 @@ function drawLine(pos){
 canvas.addEventListener("pointerdown",e=>{
  const pos=getCanvasPos(e);
  if(mode==="draw"||mode==="erase"){
-   drawing=true; drawLine(pos);
+   drawing=true;
+   ctx.beginPath();
+   ctx.moveTo(pos.x,pos.y);
  } else if(mode==="sticker" && selectedSticker){
    const img=new Image();
    img.src=selectedSticker;
@@ -176,7 +185,7 @@ document.getElementById("saveBtn").onclick=()=>{
  link.click();
 };
 
-// sticker select (no alert popup)
+// sticker select
 document.querySelectorAll("#stickers img").forEach(st=>{
  st.addEventListener("click",()=>{
    selectedSticker=st.src;
