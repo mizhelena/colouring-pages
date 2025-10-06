@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Miz Helena Colouring App v1.6 — Silent Mode</title>
+<style>
+ html,body{
+   margin:0;font-family:'Poppins',system-ui,sans-serif;
+   background:linear-gradient(135deg,#ffeaf5,#e6f4ff,#fff5fb);
+   color:#333;
+ }
+ header{text-align:center;padding:12px 0;}
+ header h1{margin:0;font-size:1.8rem;}
+ header .icon{font-size:1.5rem;vertical-align:middle;}
+ #toolbar{
+   display:flex;justify-content:center;align-items:center;flex-wrap:wrap;
+   background:rgba(255,255,255,0.9);padding:8px;gap:10px;
+   box-shadow:0 2px 6px rgba(0,0,0,.1);position:sticky;top:0;z-index:10;
+ }
+ button{
+   border:none;border-radius:12px;background:white;
+   padding:8px 14px;font-size:.9rem;cursor:pointer;color:#333;
+   box-shadow:0 2px 5px rgba(0,0,0,.1);transition:all .2s;
+ }
+ button:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,.15);}
+ button.active{background:#ffe4f0;font-weight:bold;}
+ .sizegroup{display:flex;align-items:center;gap:8px;background:white;border-radius:12px;
+   padding:6px 10px;box-shadow:0 2px 5px rgba(0,0,0,.1);}
+ .sizegroup label{font-size:.9rem;color:#444}
+ .sizegroup input[type=range]{width:140px}
+ #palette{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:10px;}
+ .color{width:28px;height:28px;border-radius:50%;border:2px solid white;
+   box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer;}
+ #thumbs{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+ #thumbs img{width:110px;border-radius:6px;cursor:pointer;
+   box-shadow:0 2px 5px rgba(0,0,0,.15);transition:.2s;}
+ #thumbs img:hover{transform:scale(1.05);}
+ canvas{
+   display:block;margin:20px auto;border-radius:10px;
+   box-shadow:0 2px 6px rgba(0,0,0,.15);background:white;
+   max-width:95%;height:auto;
+ }
+ #stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+ #stickers img{
+   width:60px;height:60px;cursor:grab;border-radius:10px;
+   transition:transform .2s;box-shadow:0 2px 5px rgba(0,0,0,.1);
+ }
+ #stickers img:hover{transform:scale(1.1);}
+ footer{text-align:center;font-size:.9rem;color:#666;padding:14px 0 24px;}
+ footer a{color:#888;text-decoration:none;}footer a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<header>
+ <h1><span class="icon">🖍️🌈</span> Miz Helena Colouring App v1.6</h1>
+</header>
+
+<div id="toolbar">
+ <button id="drawBtn" class="active">🖍️ Draw</button>
+ <button id="stickerBtn">🌸 Sticker</button>
+ <button id="selectBtn">🔍 Select</button>
+ <button id="eraseBtn">🩹 Erase</button>
+ <button id="clearBtn">🧼 Clear</button>
+ <button id="saveBtn">💾 Save</button>
+ <button id="muteBtn" disabled>🔇 Mute</button>
+ <div class="sizegroup">
+   <label for="size">🖌️ Size</label>
+   <input id="size" type="range" min="2" max="48" value="12">
+ </div>
+</div>
+
+<div id="palette"></div>
+
+<div id="thumbs">
+ <img src="page1.png"><img src="page2.png"><img src="page3.png">
+ <img src="page4.png"><img src="page5.png"><img src="page6.png">
+</div>
+
+<canvas id="canvas" width="800" height="800"></canvas>
+
+<div id="stickers">
+ <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2764.png" alt="heart">
+ <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2b50.png" alt="star">
+ <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f33c.png" alt="flower">
+ <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f98b.png" alt="butterfly">
+ <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f308.png" alt="rainbow">
+</div>
+
+<footer>
+ Made with ❤️ by Miz Helena Children’s Books · 
+ <a href="https://mizhelenabooks.com.au" target="_blank">mizhelenabooks.com.au</a>
+</footer>
+
+<script>
+const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+let drawing=false,color="#000",size=12,mode="draw",currentImg=null;
+document.getElementById('size').addEventListener('input',e=>size=+e.target.value);
+
+function createPalette(){
+ const c=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff","#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3","#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0","#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
+ const p=document.getElementById('palette');
+ c.forEach(x=>{let d=document.createElement('div');d.className='color';d.style.background=x;d.onclick=()=>color=x;p.appendChild(d);});
+}
+createPalette();
+const thumbs=document.querySelectorAll('#thumbs img');
+thumbs.forEach(img=>{img.onclick=()=>{let i=new Image();i.onload=()=>{currentImg=i;ctx.clearRect(0,0,800,800);ctx.drawImage(i,0,0,800,800);};i.src=img.src;};});
+if(thumbs[0]) thumbs[0].click();
+
+canvas.addEventListener('mousedown',e=>{if(mode==="draw"||mode==="erase"){drawing=true;draw(e);}});
+canvas.addEventListener('mouseup',()=>{drawing=false;ctx.beginPath();});
+canvas.addEventListener('mousemove',draw);
+function draw(e){
+ if(!drawing)return;
+ const r=canvas.getBoundingClientRect();
+ ctx.lineWidth=size;ctx.lineCap="round";
+ ctx.strokeStyle=(mode==="erase")?"#ffffff":color;
+ ctx.lineTo(e.clientX-r.left,e.clientY-r.top);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(e.clientX-r.left,e.clientY-r.top);
+}
+document.getElementById('clearBtn').onclick=()=>{ctx.clearRect(0,0,800,800);if(currentImg)ctx.drawImage(currentImg,0,0,800,800);};
+document.getElementById('saveBtn').onclick=()=>{let l=document.createElement('a');l.download='MizHelena_Artwork.png';l.href=canvas.toDataURL();l.click();};
+["draw","sticker","select","erase"].forEach(m=>{document.getElementById(m+"Btn").onclick=()=>{mode=m;document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));document.getElementById(m+"Btn").classList.add("active");};});
+
+// Stickers
+const stickerBar=document.getElementById('stickers');
+let selectedSticker=null,offsetX,offsetY;
+stickerBar.querySelectorAll('img').forEach(st=>{
+ st.addEventListener('mousedown',()=>{selectedSticker=st.cloneNode();selectedSticker.style.position='absolute';selectedSticker.style.width='80px';selectedSticker.style.cursor='grabbing';document.body.appendChild(selectedSticker);});
+});
+window.addEventListener('mousemove',e=>{if(selectedSticker){selectedSticker.style.left=e.pageX-40+'px';selectedSticker.style.top=e.pageY-40+'px';}});
+window.addEventListener('mouseup',e=>{
+ if(selectedSticker){
+   const rect=canvas.getBoundingClientRect();
+   const x=e.clientX-rect.left-40,y=e.clientY-rect.top-40;
+   if(x>0&&y>0&&x<rect.width&&y<rect.height){
+     const img=new Image();img.src=selectedSticker.src;
+     img.onload=()=>ctx.drawImage(img,x,y,80,80);
+   }
+   selectedSticker.remove();selectedSticker=null;
+ }
+});
+</script>
+</body>
+</html>
