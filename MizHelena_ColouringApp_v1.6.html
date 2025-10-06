@@ -44,8 +44,9 @@
  }
  #stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
  #stickers img{
-   width:60px;height:60px;cursor:grab;border-radius:10px;
+   width:60px;height:60px;cursor:pointer;border-radius:10px;
    transition:transform .2s;box-shadow:0 2px 5px rgba(0,0,0,.1);
+   touch-action:none;
  }
  #stickers img:hover{transform:scale(1.1);}
  footer{text-align:center;font-size:.9rem;color:#666;padding:14px 0 24px;}
@@ -60,7 +61,6 @@
 <div id="toolbar">
  <button id="drawBtn" class="active">🖍️ Draw</button>
  <button id="stickerBtn">🌸 Sticker</button>
- <button id="selectBtn">🔍 Select</button>
  <button id="eraseBtn">🩹 Erase</button>
  <button id="clearBtn">🧼 Clear</button>
  <button id="saveBtn">💾 Save</button>
@@ -94,34 +94,131 @@
 </footer>
 
 <script>
-const canvas = document.getElementById('canvas'),
-      ctx = canvas.getContext('2d');
-let drawing = false, color = "#000", size = 12, mode = "draw", currentImg = null;
-document.getElementById('size').addEventListener('input', e => size = +e.target.value);
+const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
+let drawing=false,color="#000",size=12,mode="draw",currentImg=null;
+document.getElementById('size').addEventListener('input',e=>size=+e.target.value);
 
 // helper to fix finger offset perfectly
 function getCanvasPos(evt) {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
-  let clientX, clientY;
-  if (evt.touches && evt.touches.length > 0) {
-    clientX = evt.touches[0].clientX;
-    clientY = evt.touches[0].clientY;
-  } else {
-    clientX = evt.clientX;
-    clientY = evt.clientY;
-  }
-  return {
-    x: (clientX - rect.left) * scaleX,
-    y: (clientY - rect.top) * scaleY
-  };
+  const x = (evt.clientX - rect.left) * scaleX;
+  const y = (evt.clientY - rect.top) * scaleY;
+  return {x, y};
 }
 
-function createPalette() {
-  const colors = ["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff","#7f8c8d","#808000",
-  "#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3","#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db",
-  "#fff176","#ffb347","#90ee90","#e0e0e0","#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
-  const palette = document.getElementById('palette');
-  colors.forEach(x => {
-    let d = document.c
+// Create color palette
+function createPalette(){
+ const c=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff","#7f8c8d","#808000","#ffd700",
+ "#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3","#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176",
+ "#ffb347","#90ee90","#e0e0e0","#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
+ const p=document.getElementById('palette');
+ c.forEach(x=>{
+   let d=document.createElement('div');
+   d.className='color';
+   d.style.background=x;
+   d.onclick=()=>color=x;
+   p.appendChild(d);
+ });
+}
+createPalette();
+
+// Thumbnails
+const thumbs=document.querySelectorAll('#thumbs img');
+thumbs.forEach(img=>{
+ img.onclick=()=>{
+   let i=new Image();
+   i.onload=()=>{
+     currentImg=i;
+     ctx.clearRect(0,0,800,800);
+     ctx.drawImage(i,0,0,800,800);
+   };
+   i.src=img.src;
+ };
+});
+if(thumbs[0]) thumbs[0].click();
+
+// Drawing logic
+function drawLine(pos){
+ ctx.lineWidth=size;
+ ctx.lineCap="round";
+ ctx.strokeStyle=(mode==="erase")?"#ffffff":color;
+ ctx.lineTo(pos.x,pos.y);
+ ctx.stroke();
+ ctx.beginPath();
+ ctx.moveTo(pos.x,pos.y);
+}
+
+canvas.addEventListener('pointerdown',e=>{
+ if(mode==="draw"||mode==="erase"){
+   drawing=true;
+   const pos=getCanvasPos(e);
+   drawLine(pos);
+ }
+});
+canvas.addEventListener('pointermove',e=>{
+ if(drawing) drawLine(getCanvasPos(e));
+});
+canvas.addEventListener('pointerup',()=>{drawing=false;ctx.beginPath();});
+
+// Buttons
+document.getElementById('clearBtn').onclick=()=>{
+ ctx.clearRect(0,0,800,800);
+ if(currentImg) ctx.drawImage(currentImg,0,0,800,800);
+};
+document.getElementById('saveBtn').onclick=()=>{
+ let l=document.createElement('a');
+ l.download='MizHelena_Artwork.png';
+ l.href=canvas.toDataURL();
+ l.click();
+};
+["draw","sticker","erase"].forEach(m=>{
+ document.getElementById(m+"Btn").onclick=()=>{
+   mode=m;
+   document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
+   document.getElementById(m+"Btn").classList.add("active");
+ };
+});
+
+// Stickers (pointer events handle both touch + mouse)
+const stickerBar=document.getElementById('stickers');
+let selectedSticker=null;
+
+stickerBar.querySelectorAll('img').forEach(st=>{
+ st.addEventListener('pointerdown',e=>{
+   e.preventDefault();
+   selectedSticker=st.cloneNode();
+   selectedSticker.style.position='absolute';
+   selectedSticker.style.width='80px';
+   selectedSticker.style.pointerEvents='none';
+   selectedSticker.style.left=e.pageX-40+'px';
+   selectedSticker.style.top=e.pageY-40+'px';
+   document.body.appendChild(selectedSticker);
+ });
+});
+
+window.addEventListener('pointermove',e=>{
+ if(selectedSticker){
+   selectedSticker.style.left=e.pageX-40+'px';
+   selectedSticker.style.top=e.pageY-40+'px';
+ }
+});
+
+window.addEventListener('pointerup',e=>{
+ if(selectedSticker){
+   const rect=canvas.getBoundingClientRect();
+   const x=e.clientX-rect.left-40;
+   const y=e.clientY-rect.top-40;
+   if(x>0&&y>0&&x<rect.width&&y<rect.height){
+     const img=new Image();
+     img.src=selectedSticker.src;
+     img.onload=()=>ctx.drawImage(img,x,y,80,80);
+   }
+   selectedSticker.remove();
+   selectedSticker=null;
+ }
+});
+</script>
+</body>
+</html>
