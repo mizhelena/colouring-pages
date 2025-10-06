@@ -113,16 +113,35 @@ canvas.addEventListener('mousemove',draw);
  // --- Touch support for mobile devices ---
 canvas.addEventListener("touchstart", (e) => {
   e.preventDefault();
-  startPosition(e.touches[0]);
+  const t = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  drawing = true;
+  ctx.beginPath();
+  ctx.moveTo(t.clientX - rect.left, t.clientY - rect.top);
+  playPop();
 });
 
-canvas.addEventListener("touchend", endPosition);
+canvas.addEventListener("touchend", () => {
+  drawing = false;
+  ctx.beginPath();
+});
 
 canvas.addEventListener("touchmove", (e) => {
   e.preventDefault();
-  draw(e.touches[0]);
+  if (!drawing) return;
+  const t = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  ctx.lineWidth = size;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = (mode === "erase") ? "#ffffff" : color;
+  ctx.lineTo(t.clientX - rect.left, t.clientY - rect.top);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(t.clientX - rect.left, t.clientY - rect.top);
+  playPop();
 });
 // --- End touch support ---
+
 
 function draw(e){
  if(!drawing)return;
@@ -157,4 +176,5 @@ window.addEventListener('mouseup',e=>{
 </script>
 </body>
 </html>
+
 
