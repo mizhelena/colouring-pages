@@ -118,7 +118,6 @@ canvas.addEventListener("touchstart", (e) => {
   drawing = true;
   ctx.beginPath();
   ctx.moveTo(t.clientX - rect.left, t.clientY - rect.top);
-  playPop();
 });
 
 canvas.addEventListener("touchend", () => {
@@ -138,9 +137,9 @@ canvas.addEventListener("touchmove", (e) => {
   ctx.stroke();
   ctx.beginPath();
   ctx.moveTo(t.clientX - rect.left, t.clientY - rect.top);
-  playPop();
 });
 // --- End touch support ---
+
 
 
 function draw(e){
@@ -176,5 +175,6 @@ window.addEventListener('mouseup',e=>{
 </script>
 </body>
 </html>
+
 
 
