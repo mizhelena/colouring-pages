@@ -44,7 +44,7 @@
  }
  #stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
  #stickers img{
-   width:60px;height:60px;cursor:pointer;border-radius:10px;
+   width:60px;height:60px;cursor:grab;border-radius:10px;
    transition:transform .2s;box-shadow:0 2px 5px rgba(0,0,0,.1);
  }
  #stickers img:hover{transform:scale(1.1);}
@@ -96,7 +96,7 @@ const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
 let drawing=false,color="#000",size=12,mode="draw",currentImg=null;
 document.getElementById('size').addEventListener('input',e=>size=+e.target.value);
 
-// Fix finger offset scaling
+// touch alignment fix
 function getCanvasPos(evt){
  const rect=canvas.getBoundingClientRect();
  const scaleX=canvas.width/rect.width;
@@ -106,7 +106,7 @@ function getCanvasPos(evt){
  return {x,y};
 }
 
-// Colour palette
+// create palette
 function createPalette(){
  const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff",
  "#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3",
@@ -123,7 +123,7 @@ function createPalette(){
 }
 createPalette();
 
-// Thumbnails
+// thumbnails
 const thumbs=document.querySelectorAll('#thumbs img');
 thumbs.forEach(img=>{
  img.onclick=()=>{
@@ -138,7 +138,7 @@ thumbs.forEach(img=>{
 });
 if(thumbs[0]) thumbs[0].click();
 
-// Drawing logic
+// draw function
 function drawLine(pos){
  ctx.lineWidth=size;
  ctx.lineCap="round";
@@ -149,6 +149,7 @@ function drawLine(pos){
  ctx.moveTo(pos.x,pos.y);
 }
 
+// drawing listeners
 canvas.addEventListener('pointerdown',e=>{
  if(mode!=="draw" && mode!=="erase") return;
  drawing=true; drawLine(getCanvasPos(e));
@@ -159,7 +160,7 @@ canvas.addEventListener('pointermove',e=>{
 });
 canvas.addEventListener('pointerup',()=>{drawing=false;ctx.beginPath();});
 
-// Buttons
+// buttons
 document.getElementById('clearBtn').onclick=()=>{
  ctx.clearRect(0,0,800,800);
  if(currentImg) ctx.drawImage(currentImg,0,0,800,800);
@@ -178,18 +179,28 @@ document.getElementById('saveBtn').onclick=()=>{
  };
 });
 
-// 🌸 Stickers — tap to place (mobile & desktop)
+// 🌸 Stickers (drag + drop on canvas)
 const stickers=document.querySelectorAll('#stickers img');
+let draggedSticker=null;
+
 stickers.forEach(st=>{
- st.addEventListener('click',e=>{
-   if(mode!=="sticker") return;
-   const rect=canvas.getBoundingClientRect();
-   const x=(rect.width/2)-40; // centre placement
-   const y=(rect.height/2)-40;
-   const img=new Image();
-   img.src=st.src;
-   img.onload=()=>ctx.drawImage(img,x,y,80,80);
+ st.addEventListener('dragstart',e=>{
+   draggedSticker=st;
  });
+});
+
+// allow dropping on canvas
+canvas.addEventListener('dragover',e=>e.preventDefault());
+canvas.addEventListener('drop',e=>{
+ if(!draggedSticker) return;
+ e.preventDefault();
+ const rect=canvas.getBoundingClientRect();
+ const x=(e.clientX-rect.left)*(canvas.width/rect.width)-40;
+ const y=(e.clientY-rect.top)*(canvas.height/rect.height)-40;
+ const img=new Image();
+ img.src=draggedSticker.src;
+ img.onload=()=>ctx.drawImage(img,x,y,80,80);
+ draggedSticker=null;
 });
 </script>
 </body>
