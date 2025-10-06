@@ -40,8 +40,7 @@
    display:block;margin:20px auto;border-radius:10px;
    box-shadow:0 2px 6px rgba(0,0,0,.15);background:white;
    max-width:95%;height:auto;
-  touch-action:none;
-
+   touch-action:none; /* prevents scrolling while drawing */
  }
  #stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
  #stickers img{
@@ -129,14 +128,17 @@ if(thumbs[0]) thumbs[0].click();
 canvas.addEventListener('mousedown',e=>{if(mode==="draw"||mode==="erase"){drawing=true;draw(e);playPop();}});
 canvas.addEventListener('mouseup',()=>{drawing=false;ctx.beginPath();});
 canvas.addEventListener('mousemove',e=>{if(drawing){draw(e);playPop();}});
- // --- Touch support for mobile devices ---
+
+// --- Touch support for mobile devices ---
 canvas.addEventListener("touchstart", (e) => {
   e.preventDefault();
   const t = e.touches[0];
   const rect = canvas.getBoundingClientRect();
+  const x = t.pageX - rect.left - window.scrollX;
+  const y = t.pageY - rect.top - window.scrollY;
   drawing = true;
   ctx.beginPath();
-  ctx.moveTo(t.clientX - rect.left, t.clientY - rect.top);
+  ctx.moveTo(x, y);
   playPop();
 });
 
@@ -150,17 +152,18 @@ canvas.addEventListener("touchmove", (e) => {
   if (!drawing) return;
   const t = e.touches[0];
   const rect = canvas.getBoundingClientRect();
+  const x = t.pageX - rect.left - window.scrollX;
+  const y = t.pageY - rect.top - window.scrollY;
   ctx.lineWidth = size;
   ctx.lineCap = "round";
   ctx.strokeStyle = (mode === "erase") ? "#ffffff" : color;
-  ctx.lineTo(t.clientX - rect.left, t.clientY - rect.top);
+  ctx.lineTo(x, y);
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(t.clientX - rect.left, t.clientY - rect.top);
+  ctx.moveTo(x, y);
   playPop();
 });
 // --- End touch support ---
-
 
 function draw(e){
  if(!drawing)return;
@@ -195,6 +198,3 @@ window.addEventListener('mouseup',e=>{
 </script>
 </body>
 </html>
-
-
-
