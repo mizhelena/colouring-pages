@@ -96,35 +96,37 @@
 const canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");
 let drawing=false,color="#000",size=12,mode="draw",currentImg=null,selectedSticker=null;
 
-// 🖌️ update brush size
+// 🖌️ Brush size
 document.getElementById("size").addEventListener("input",e=>{
  size=parseInt(e.target.value);
 });
 
-// accurate touch/mouse position
+// accurate touch/mouse pos
 function getCanvasPos(evt){
  const rect=canvas.getBoundingClientRect();
  const scaleX=canvas.width/rect.width,scaleY=canvas.height/rect.height;
- const clientX = evt.clientX || (evt.touches && evt.touches[0].clientX);
- const clientY = evt.clientY || (evt.touches && evt.touches[0].clientY);
- return {
-   x:(clientX-rect.left)*scaleX,
-   y:(clientY-rect.top)*scaleY
- };
+ const clientX=evt.clientX||(evt.touches&&evt.touches[0].clientX);
+ const clientY=evt.clientY||(evt.touches&&evt.touches[0].clientY);
+ return {x:(clientX-rect.left)*scaleX,y:(clientY-rect.top)*scaleY};
 }
 
-// draw line
+// draw/erase function
 function drawLine(pos){
  ctx.lineWidth=size;
  ctx.lineCap="round";
- ctx.strokeStyle=(mode==="erase")?"#ffffff":color;
+ if(mode==="erase"){
+   ctx.globalCompositeOperation="destination-out";
+ } else {
+   ctx.globalCompositeOperation="source-over";
+   ctx.strokeStyle=color;
+ }
  ctx.lineTo(pos.x,pos.y);
  ctx.stroke();
  ctx.beginPath();
  ctx.moveTo(pos.x,pos.y);
 }
 
-// drawing + sticker placement
+// drawing and stickers
 canvas.addEventListener("pointerdown",e=>{
  const pos=getCanvasPos(e);
  if(mode==="draw"||mode==="erase"){
@@ -138,11 +140,11 @@ canvas.addEventListener("pointerdown",e=>{
  }
 });
 canvas.addEventListener("pointermove",e=>{
- if(drawing && (mode==="draw"||mode==="erase")) drawLine(getCanvasPos(e));
+ if(drawing&&(mode==="draw"||mode==="erase")) drawLine(getCanvasPos(e));
 });
-canvas.addEventListener("pointerup",()=>{drawing=false;ctx.beginPath();});
+canvas.addEventListener("pointerup",()=>{drawing=false;ctx.beginPath();ctx.globalCompositeOperation="source-over";});
 
-// colour palette
+// palette
 (function(){
  const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff","#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3","#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0","#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
  const p=document.getElementById("palette");
@@ -154,7 +156,7 @@ canvas.addEventListener("pointerup",()=>{drawing=false;ctx.beginPath();});
  });
 })();
 
-// thumbnails
+// thumbs
 document.querySelectorAll("#thumbs img").forEach(img=>{
  img.onclick=()=>{
    const i=new Image();
@@ -164,7 +166,7 @@ document.querySelectorAll("#thumbs img").forEach(img=>{
 });
 if(document.querySelector("#thumbs img")) document.querySelector("#thumbs img").click();
 
-// mode buttons
+// modes
 ["draw","sticker","erase"].forEach(m=>{
  document.getElementById(m+"Btn").onclick=()=>{
    mode=m;
@@ -185,7 +187,7 @@ document.getElementById("saveBtn").onclick=()=>{
  link.click();
 };
 
-// sticker select
+// stickers
 document.querySelectorAll("#stickers img").forEach(st=>{
  st.addEventListener("click",()=>{
    selectedSticker=st.src;
