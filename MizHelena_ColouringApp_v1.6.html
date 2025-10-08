@@ -16,6 +16,7 @@ header h1{margin:0;font-size:1.9rem;line-height:1.3;text-align:center;}
   background:rgba(255,255,255,0.9);padding:8px;gap:10px;
   box-shadow:0 2px 6px rgba(0,0,0,.1);position:sticky;top:0;z-index:10;
 }
+#zoomControls{display:flex;justify-content:center;margin:6px 0;}
 button{
   border:none;border-radius:12px;background:white;padding:8px 14px;font-size:.9rem;cursor:pointer;color:#333;
   box-shadow:0 2px 5px rgba(0,0,0,.1);transition:.2s;
@@ -30,19 +31,25 @@ button.active{background:#ffe4f0;font-weight:bold;}
 #thumbs{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
 #thumbs img{width:110px;border-radius:6px;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.15);transition:.2s;}
 #thumbs img:hover{transform:scale(1.05);}
-.canvas-wrap{position:relative;width:min(800px,95vw);margin:20px auto;overflow:visible;
-  transform-origin:center center;transition:transform .1s ease-out;will-change:transform;}
+
+.canvas-wrap{
+  position:relative;width:min(800px,95vw);margin:20px auto;
+  transform-origin:center center;transition:transform .1s ease-out;will-change:transform;
+  touch-action:none; /* allow custom pinch / pan */
+}
 #bgCanvas{
   display:block;width:100%;height:auto;border-radius:10px;background:white;
   box-shadow:0 2px 6px rgba(0,0,0,.15);
 }
 #paintCanvas{
   position:absolute;inset:0;width:100%;height:100%;
-  border-radius:10px;touch-action:none;
+  border-radius:10px;touch-action:none; /* prevent browser gestures while drawing */
 }
+
 #stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
 #stickers img{width:60px;height:60px;cursor:pointer;border-radius:10px;transition:transform .2s;box-shadow:0 2px 5px rgba(0,0,0,.1);}
 #stickers img:hover{transform:scale(1.1);}
+
 footer{text-align:center;font-size:.9rem;color:#666;padding:14px 0 24px;}
 footer a{color:#888;text-decoration:none;} footer a:hover{text-decoration:underline;}
 </style>
@@ -51,4 +58,37 @@ footer a{color:#888;text-decoration:none;} footer a:hover{text-decoration:underl
 <header><h1>🖍️🌈 Yiayia & Sienna’s Colouring Fun</h1></header>
 
 <div id="toolbar">
- <button id="drawBtn" cl
+  <button id="drawBtn" class="active">🖍️ Draw</button>
+  <button id="stickerBtn">🌸 Sticker</button>
+  <button id="eraseBtn">🩹 Erase</button>
+  <button id="clearBtn">🧼 Clear</button>
+  <button id="saveBtn">💾 Save</button>
+  <div class="sizegroup">
+    <label for="size">🖌️ Size</label>
+    <input id="size" type="range" min="2" max="48" value="12">
+  </div>
+</div>
+
+<!-- Reset Zoom just under toolbar -->
+<div id="zoomControls">
+  <button id="resetZoomBtn">🔄 Reset zoom</button>
+</div>
+
+<!-- Palette -->
+<div id="palette"></div>
+
+<!-- Thumbnails -->
+<div id="thumbs">
+  <img src="page1.png"><img src="page2.png"><img src="page3.png">
+  <img src="page4.png"><img src="page5.png"><img src="page6.png">
+</div>
+
+<!-- Main canvas (bg + paint) inside zoomable wrapper -->
+<div class="canvas-wrap" id="canvasWrap">
+  <canvas id="bgCanvas" width="800" height="800"></canvas>
+  <canvas id="paintCanvas" width="800" height="800"></canvas>
+</div>
+
+<!-- Stickers -->
+<div id="stickers">
+  <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2764.png"
