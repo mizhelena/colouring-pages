@@ -31,4 +31,173 @@
  #thumbs{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
  #thumbs img{width:110px;border-radius:6px;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.15);transition:.2s;}
  #thumbs img:hover{transform:scale(1.05);}
- .stage{position:relative;widt
+ .stage{position:relative;width:min(800px,95vw);margin:20px auto;}
+ #bgCanvas,#paintCanvas{
+   width:100%;height:auto;border-radius:10px;display:block;
+   box-shadow:0 2px 6px rgba(0,0,0,.15);
+   touch-action:none;
+ }
+ #paintCanvas{position:absolute;left:0;top:0;box-shadow:none;}
+ #stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+ #stickers img{width:60px;height:60px;cursor:pointer;border-radius:10px;transition:.2s;box-shadow:0 2px 5px rgba(0,0,0,.1);}
+ #stickers img:hover{transform:scale(1.1);}
+ footer{text-align:center;font-size:.9rem;color:#666;padding:14px 0 24px;}
+ footer a{color:#888;text-decoration:none;} footer a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<header><h1>🖍️🌈 Yiayia & Sienna’s Colouring Fun</h1></header>
+
+<div id="toolbar">
+ <button id="drawBtn" class="active">🖍️ Draw</button>
+ <button id="stickerBtn">🌸 Sticker</button>
+ <button id="eraseBtn">🩹 Erase</button>
+ <button id="clearBtn">🧼 Clear</button>
+ <button id="saveBtn">💾 Save</button>
+ <div class="sizegroup">
+   <label for="size">🖌️ Size</label>
+   <input id="size" type="range" min="2" max="48" value="12">
+ </div>
+</div>
+
+<div id="palette">
+  <div class="chip" style="background:#e74c3c" onclick="color='#e74c3c'"></div>
+  <div class="chip" style="background:#e67e22" onclick="color='#e67e22'"></div>
+  <div class="chip" style="background:#f1c40f" onclick="color='#f1c40f'"></div>
+  <div class="chip" style="background:#2ecc71" onclick="color='#2ecc71'"></div>
+  <div class="chip" style="background:#3498db" onclick="color='#3498db'"></div>
+  <div class="chip" style="background:#9b59b6" onclick="color='#9b59b6'"></div>
+  <div class="chip" style="background:#ff8bd6" onclick="color='#ff8bd6'"></div>
+  <div class="chip" style="background:#ffffff;border-color:#ddd" onclick="color='#ffffff'"></div>
+  <div class="chip" style="background:#ffc0cb" onclick="color='#ffc0cb'"></div>
+  <div class="chip" style="background:#b0e0e6" onclick="color='#b0e0e6'"></div>
+  <div class="chip" style="background:#f8c8dc" onclick="color='#f8c8dc'"></div>
+  <div class="chip" style="background:#fff176" onclick="color='#fff176'"></div>
+  <div class="chip" style="background:#ffb347" onclick="color='#ffb347'"></div>
+  <div class="chip" style="background:#90ee90" onclick="color='#90ee90'"></div>
+  <div class="chip" style="background:#e0e0e0" onclick="color='#e0e0e0'"></div>
+  <div class="chip" style="background:#2c3e50" onclick="color='#2c3e50'"></div>
+</div>
+
+<div id="thumbs">
+ <img src="page1.png"><img src="page2.png"><img src="page3.png">
+ <img src="page4.png"><img src="page5.png"><img src="page6.png">
+</div>
+
+<div class="stage">
+ <canvas id="bgCanvas" width="800" height="800"></canvas>
+ <canvas id="paintCanvas" width="800" height="800"></canvas>
+</div>
+
+<div id="stickers">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2764.png" alt="heart">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2b50.png" alt="star">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f33c.png" alt="flower">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f98b.png" alt="butterfly">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f308.png" alt="rainbow">
+</div>
+
+<footer>Made with ❤️ by Miz Helena Children’s Books · <a href="https://mizhelenabooks.com.au" target="_blank">mizhelenabooks.com.au</a></footer>
+
+<script>
+const bgCanvas=document.getElementById("bgCanvas");
+const paintCanvas=document.getElementById("paintCanvas");
+const bgCtx=bgCanvas.getContext("2d");
+const dispCtx=paintCanvas.getContext("2d");
+const paintRaw=document.createElement("canvas");paintRaw.width=800;paintRaw.height=800;
+const rawCtx=paintRaw.getContext("2d");
+let drawing=false,color="#000",size=12,mode="draw",selectedSticker=null;
+let viewScale=1,viewX=0,viewY=0,targetScale=1,targetX=0,targetY=0;
+const MIN_SCALE=1,MAX_SCALE=1.8;let rafId=null;
+let bgImage=new Image();bgImage.crossOrigin="anonymous";
+
+function render(){
+  bgCtx.setTransform(1,0,0,1,0,0);bgCtx.clearRect(0,0,800,800);
+  bgCtx.setTransform(viewScale,0,0,viewScale,viewX,viewY);
+  if(bgImage)bgCtx.drawImage(bgImage,0,0,800,800);
+  dispCtx.setTransform(1,0,0,1,0,0);dispCtx.clearRect(0,0,800,800);
+  dispCtx.setTransform(viewScale,0,0,viewScale,viewX,viewY);
+  dispCtx.drawImage(paintRaw,0,0);
+}
+function animate(){
+  const k=0.12;
+  viewScale+=(targetScale-viewScale)*k;
+  viewX+=(targetX-viewX)*k;
+  viewY+=(targetY-viewY)*k;
+  render();
+  if(Math.abs(targetScale-viewScale)>0.001||Math.abs(targetX-viewX)>0.4||Math.abs(targetY-viewY)>0.4)
+    rafId=requestAnimationFrame(animate);else rafId=null;
+}
+function screenToCanvas(x,y){const r=paintCanvas.getBoundingClientRect();return{x:(x-r.left)*(800/r.width),y:(y-r.top)*(800/r.height)};}
+function toImageSpace(x,y){const s=screenToCanvas(x,y);return{x:(s.x-viewX)/viewScale,y:(s.y-viewY)/viewScale};}
+function setTargetZoomAt(x,y,f){
+  const s=Math.max(MIN_SCALE,Math.min(MAX_SCALE,targetScale*f));
+  const sc=screenToCanvas(x,y);const wx=(sc.x-targetX)/targetScale,wy=(sc.y-targetY)/targetScale;
+  targetScale=s;targetX=sc.x-wx*s;targetY=sc.y-wy*s;
+  if(!rafId)rafId=requestAnimationFrame(animate);
+}
+function loadImage(src){const i=new Image();i.crossOrigin="anonymous";i.onload=()=>{bgImage=i;render();};i.src=src;}
+window.addEventListener("load",()=>{const f=document.querySelector("#thumbs img");if(f)loadImage(f.src);});
+document.querySelectorAll("#thumbs img").forEach(i=>i.onclick=()=>loadImage(i.src));
+document.getElementById("size").oninput=e=>size=parseInt(e.target.value,10);
+
+paintCanvas.onpointerdown=e=>{
+  if(e.button===2)return;
+  const p=toImageSpace(e.clientX,e.clientY);
+  if(mode==="draw"||mode==="erase"){drawing=true;rawCtx.beginPath();rawCtx.moveTo(p.x,p.y);}
+  else if(mode==="sticker"&&selectedSticker){const s=new Image();s.crossOrigin="anonymous";s.onload=()=>{rawCtx.drawImage(s,p.x-30,p.y-30,60,60);render();};s.src=selectedSticker;}
+};
+paintCanvas.onpointermove=e=>{
+  if(!drawing)return;
+  const p=toImageSpace(e.clientX,e.clientY);
+  rawCtx.lineWidth=size;rawCtx.lineCap="round";
+  if(mode==="erase"){rawCtx.globalCompositeOperation="destination-out";}
+  else{rawCtx.globalCompositeOperation="source-over";rawCtx.strokeStyle=color;}
+  rawCtx.lineTo(p.x,p.y);rawCtx.stroke();rawCtx.beginPath();rawCtx.moveTo(p.x,p.y);render();
+};
+paintCanvas.onpointerup=()=>{drawing=false;rawCtx.beginPath();rawCtx.globalCompositeOperation="source-over";};
+paintCanvas.oncontextmenu=e=>e.preventDefault();
+["draw","sticker","erase"].forEach(m=>{document.getElementById(m+"Btn").onclick=()=>{mode=m;document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));document.getElementById(m+"Btn").classList.add("active");};});
+document.getElementById("clearBtn").onclick=()=>{rawCtx.setTransform(1,0,0,1,0,0);rawCtx.clearRect(0,0,800,800);render();};
+document.getElementById("saveBtn").onclick=()=>{
+  const o=document.createElement("canvas");o.width=800;o.height=800;const c=o.getContext("2d");
+  if(bgImage)c.drawImage(bgImage,0,0,800,800);c.drawImage(paintRaw,0,0);
+  o.toBlob(b=>{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="Yiayia_Sienna_Artwork.png";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),800);});
+};
+document.querySelectorAll("#stickers img").forEach(st=>{
+  st.onclick=()=>{selectedSticker=st.src;mode="sticker";
+    document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
+    document.getElementById("stickerBtn").classList.add("active");};
+});
+function onWheel(e){e.preventDefault();setTargetZoomAt(e.clientX,e.clientY,1-(e.deltaY*0.001));}
+bgCanvas.addEventListener("wheel",onWheel,{passive:false});
+paintCanvas.addEventListener("wheel",onWheel,{passive:false});
+
+/* --- Smooth panning --- */
+let rightPan=false,startX=0,startY=0;
+function startPan(e){if(e.button!==2)return;rightPan=true;const s=screenToCanvas(e.clientX,e.clientY);startX=s.x-targetX;startY=s.y-targetY;}
+function movePan(e){if(!rightPan)return;const s=screenToCanvas(e.clientX,e.clientY);targetX=s.x-startX;targetY=s.y-startY;if(!rafId)rafId=requestAnimationFrame(animate);}
+function endPan(){rightPan=false;}
+bgCanvas.addEventListener("mousedown",startPan);
+paintCanvas.addEventListener("mousedown",startPan);
+window.addEventListener("mousemove",movePan);
+window.addEventListener("mouseup",endPan);
+bgCanvas.addEventListener("contextmenu",e=>e.preventDefault());
+paintCanvas.addEventListener("contextmenu",e=>e.preventDefault());
+
+/* --- Mobile two-finger smooth pan+zoom --- */
+let prevDist=0,prevMid=null;
+function dist(t0,t1){return Math.hypot(t0.clientX-t1.clientX,t0.clientY-t1.clientY);}
+function mid(t0,t1){return{x:(t0.clientX+t1.clientX)/2,y:(t0.clientY+t1.clientY)/2};}
+function tStart(e){if(e.touches.length===2){e.preventDefault();prevDist=dist(e.touches[0],e.touches[1]);prevMid=mid(e.touches[0],e.touches[1]);drawing=false;}}
+function tMove(e){if(e.touches.length===2){e.preventDefault();const d=dist(e.touches[0],e.touches[1]);const m=mid(e.touches[0],e.touches[1]);setTargetZoomAt(m.x,m.y,d/(prevDist||d));prevDist=d;const sc=screenToCanvas(m.x,m.y),pc=screenToCanvas(prevMid.x,prevMid.y);targetX+=(sc.x-pc.x);targetY+=(sc.y-pc.y);prevMid=m;if(!rafId)rafId=requestAnimationFrame(animate);}}
+function tEnd(e){if(e.touches.length<2){prevDist=0;prevMid=null;}}
+[bgCanvas,paintCanvas].forEach(c=>{c.addEventListener("touchstart",tStart,{passive:false});c.addEventListener("touchmove",tMove,{passive:false});c.addEventListener("touchend",tEnd,{passive:false});});
+let lastTap=0;
+function dbl(e){const n=Date.now();if(n-lastTap<350){targetScale=1;targetX=0;targetY=0;if(!rafId)rafId=requestAnimationFrame(animate);}lastTap=n;}
+bgCanvas.addEventListener("click",dbl);
+paintCanvas.addEventListener("click",dbl);
+window.addEventListener("resize",render);
+</script>
+</body>
+</html>
