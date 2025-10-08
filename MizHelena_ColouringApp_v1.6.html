@@ -34,77 +34,8 @@ button.active{background:#ffe4f0;font-weight:bold;}
 #thumbs img{width:110px;border-radius:6px;cursor:pointer;
   box-shadow:0 2px 5px rgba(0,0,0,.15);transition:.2s;}
 #thumbs img:hover{transform:scale(1.05);}
-.canvas-area{position:relative;width:min(800px,95vw);margin:20px auto;overflow:hidden;touch-action:none;}
-.canvas-wrap{position:relative;transform-origin:center center;transition:transform .1s ease-out;}
-#bgCanvas{
-  display:block;width:100%;height:auto;border-radius:10px;background:white;
-  box-shadow:0 2px 6px rgba(0,0,0,.15);
-}
-#paintCanvas{position:absolute;inset:0;width:100%;height:100%;
-  border-radius:10px;touch-action:none;}
-#stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
-#stickers img{width:60px;height:60px;cursor:pointer;border-radius:10px;
-  transition:transform .2s;box-shadow:0 2px 5px rgba(0,0,0,.1);}
-#stickers img:hover{transform:scale(1.1);}
-footer{text-align:center;font-size:.9rem;color:#666;padding:14px 0 24px;}
-footer a{color:#888;text-decoration:none;}footer a:hover{text-decoration:underline;}
-</style>
-</head>
-<body>
-<header><h1>🖍️🌈 Yiayia & Sienna’s Colouring Fun</h1></header>
-
-<div id="toolbar">
- <button id="drawBtn" class="active">🖍️ Draw</button>
- <button id="stickerBtn">🌸 Sticker</button>
- <button id="eraseBtn">🩹 Erase</button>
- <button id="clearBtn">🧼 Clear</button>
- <button id="saveBtn">💾 Save</button>
- <div class="sizegroup">
-   <label for="size">🖌️ Size</label>
-   <input id="size" type="range" min="2" max="48" value="12">
- </div>
-</div>
-
-<div id="palette"></div>
-
-<div id="thumbs">
- <img src="page1.png"><img src="page2.png"><img src="page3.png">
- <img src="page4.png"><img src="page5.png"><img src="page6.png">
-</div>
-
-<div class="canvas-area">
- <div class="canvas-wrap" id="canvasWrap">
-  <canvas id="bgCanvas" width="800" height="800"></canvas>
-  <canvas id="paintCanvas" width="800" height="800"></canvas>
- </div>
-</div>
-
-<div id="stickers">
- <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2764.png">
- <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2b50.png">
- <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f33c.png">
- <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f98b.png">
- <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f308.png">
-</div>
-
-<footer>Made with ❤️ by Miz Helena Children’s Books · 
- <a href="https://mizhelenabooks.com.au" target="_blank">mizhelenabooks.com.au</a>
-</footer>
-
-<script>
-const bgCanvas=document.getElementById("bgCanvas");
-const paintCanvas=document.getElementById("paintCanvas");
-const bgCtx=bgCanvas.getContext("2d");
-const ctx=paintCanvas.getContext("2d");
-let drawing=false,color="#000",size=12,mode="draw",selectedSticker=null;
-
-// --- Load main image ---
-function loadImage(src){
- const img=new Image();
- img.crossOrigin="anonymous";
- img.onload=()=>{bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
- bgCtx.drawImage(img,0,0,bgCanvas.width,bgCanvas.height);};
- img.src=src;
-}
-window.addEventListener("load",()=>loadImage("page1.png"));
-document.querySelectorAll("#thumbs img").forEach(i=>i.oncli
+.canvas-area{
+  position:relative;
+  width:min(800px,95vw);
+  margin:20px auto;
+  overflow:visible;               /* ✅ allow first*
