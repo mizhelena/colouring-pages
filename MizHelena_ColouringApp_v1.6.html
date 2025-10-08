@@ -1,90 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Yiayia & Sienna’s Colouring Fun</title>
 <style>
-html, body {
-  margin: 0;
-  font-family: 'Poppins', system-ui, sans-serif;
-  background: linear-gradient(135deg, #ffeaf5, #e6f4ff, #fff5fb);
-  color: #333;
-}
-header { text-align: center; padding: 12px 0; }
-header h1 { margin: 0; font-size: 1.9rem; line-height: 1.3; }
+  html,body{margin:0;font-family:'Poppins',system-ui,sans-serif;
+    background:linear-gradient(135deg,#ffeaf5,#e6f4ff,#fff5fb);color:#333;}
+  header{text-align:center;padding:12px 0;}
+  header h1{margin:0;font-size:1.9rem;line-height:1.3;}
+  #toolbar{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;
+    background:rgba(255,255,255,0.9);padding:8px;gap:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,.1);position:sticky;top:0;z-index:10;}
+  button{border:none;border-radius:12px;background:white;padding:8px 14px;font-size:.9rem;cursor:pointer;color:#333;
+    box-shadow:0 2px 5px rgba(0,0,0,.1);transition:.2s;}
+  button:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,.15);}
+  button.active{background:#ffe4f0;font-weight:bold;}
+  .sizegroup{display:flex;align-items:center;gap:8px;background:white;border-radius:12px;
+    padding:6px 10px;box-shadow:0 2px 5px rgba(0,0,0,.1);}
+  .sizegroup input[type=range]{width:140px}
 
-#toolbar {
-  display: flex; justify-content: center; align-items: center; flex-wrap: wrap;
-  background: rgba(255,255,255,0.9); padding: 8px; gap: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,.1); position: sticky; top: 0; z-index: 10;
-}
-button {
-  border: none; border-radius: 12px; background: white; padding: 8px 14px; font-size: .9rem;
-  cursor: pointer; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,.1); transition: all .2s;
-}
-button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,.15); }
-button.active { background: #ffe4f0; font-weight: bold; }
+  /* Static, always-visible palette */
+  #palette{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:10px;}
+  .chip{width:28px;height:28px;border-radius:50%;border:2px solid #fff;
+    box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer;}
 
-.sizegroup {
-  display: flex; align-items: center; gap: 8px; background: white; border-radius: 12px;
-  padding: 6px 10px; box-shadow: 0 2px 5px rgba(0,0,0,.1);
-}
-.sizegroup input[type=range] { width: 140px; }
+  #thumbs{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  #thumbs img{width:110px;border-radius:6px;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.15);transition:.2s;}
+  #thumbs img:hover{transform:scale(1.05);}
 
-#palette { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 10px; }
-.color {
-  width: 28px; height: 28px; border-radius: 50%; border: 2px solid white;
-  box-shadow: 0 1px 3px rgba(0,0,0,.2); cursor: pointer;
-}
+  .canvas-area{width:min(800px,95vw);margin:20px auto;overflow:hidden;}
+  .canvas-wrap{position:relative;transform-origin:center center;transition:transform .1s ease-out;touch-action:none;}
+  #bgCanvas{display:block;width:100%;height:auto;border-radius:10px;background:white;box-shadow:0 2px 6px rgba(0,0,0,.15);}
+  #paintCanvas{position:absolute;inset:0;width:100%;height:100%;border-radius:10px;touch-action:none;}
 
-#thumbs {
-  display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;
-}
-#thumbs img {
-  width: 110px; border-radius: 6px; cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0,0,0,.15); transition: .2s;
-}
-#thumbs img:hover { transform: scale(1.05); }
+  #stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+  #stickers img{width:60px;height:60px;cursor:pointer;border-radius:10px;transition:transform .2s;box-shadow:0 2px 5px rgba(0,0,0,.1);}
+  #stickers img:hover{transform:scale(1.1);}
 
-.canvas-area { width: min(800px, 95vw); margin: 20px auto; overflow: hidden; }
-.canvas-wrap {
-  position: relative; transform-origin: center center;
-  transition: transform .1s ease-out; touch-action: none;
-}
-#bgCanvas {
-  display: block; width: 100%; height: auto; border-radius: 10px; background: white;
-  box-shadow: 0 2px 6px rgba(0,0,0,.15);
-}
-#paintCanvas {
-  position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 10px;
-  touch-action: none;
-}
+  #resetZoom{display:block;margin:10px auto;padding:8px 14px;border:none;border-radius:10px;background:white;
+    box-shadow:0 2px 5px rgba(0,0,0,.1);cursor:pointer;}
+  #resetZoom:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,.15);}
 
-#stickers {
-  display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;
-}
-#stickers img {
-  width: 60px; height: 60px; cursor: pointer; border-radius: 10px;
-  transition: transform .2s; box-shadow: 0 2px 5px rgba(0,0,0,.1);
-}
-#stickers img:hover { transform: scale(1.1); }
-
-footer { text-align: center; font-size: .9rem; color: #666; padding: 14px 0 24px; }
-footer a { color: #888; text-decoration: none; }
-footer a:hover { text-decoration: underline; }
-
-#resetZoom {
-  display: block; margin: 10px auto; padding: 8px 14px; border: none; border-radius: 10px;
-  background: white; box-shadow: 0 2px 5px rgba(0,0,0,.1); cursor: pointer;
-}
-#resetZoom:hover {
-  transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,.15);
-}
+  footer{text-align:center;font-size:.9rem;color:#666;padding:14px 0 24px;}
+  footer a{color:#888;text-decoration:none;} footer a:hover{text-decoration:underline;}
 </style>
 </head>
 <body>
-
 <header><h1>🖍️🌈 Yiayia & Sienna’s Colouring Fun</h1></header>
 
 <div id="toolbar">
@@ -101,13 +63,38 @@ footer a:hover { text-decoration: underline; }
 
 <button id="resetZoom">🔄 Reset Zoom</button>
 
-<div id="palette"></div>
-
-<div id="thumbs">
-  <img src="page1.png"><img src="page2.png"><img src="page3.png">
-  <img src="page4.png"><img src="page5.png"><img src="page6.png">
+<!-- Static palette (no JS needed to show) -->
+<div id="palette">
+  <!-- Pastels + basics; each chip sets global 'color' -->
+  <div class="chip" style="background:#e74c3c" onclick="color='#e74c3c'"></div>
+  <div class="chip" style="background:#e67e22" onclick="color='#e67e22'"></div>
+  <div class="chip" style="background:#f1c40f" onclick="color='#f1c40f'"></div>
+  <div class="chip" style="background:#2ecc71" onclick="color='#2ecc71'"></div>
+  <div class="chip" style="background:#3498db" onclick="color='#3498db'"></div>
+  <div class="chip" style="background:#9b59b6" onclick="color='#9b59b6'"></div>
+  <div class="chip" style="background:#ff8bd6" onclick="color='#ff8bd6'"></div>
+  <div class="chip" style="background:#ffffff;border-color:#ddd" onclick="color='#ffffff'"></div>
+  <div class="chip" style="background:#ffc0cb" onclick="color='#ffc0cb'"></div>
+  <div class="chip" style="background:#b0e0e6" onclick="color='#b0e0e6'"></div>
+  <div class="chip" style="background:#f8c8dc" onclick="color='#f8c8dc'"></div>
+  <div class="chip" style="background:#fff176" onclick="color='#fff176'"></div>
+  <div class="chip" style="background:#ffb347" onclick="color='#ffb347'"></div>
+  <div class="chip" style="background:#90ee90" onclick="color='#90ee90'"></div>
+  <div class="chip" style="background:#e0e0e0" onclick="color='#e0e0e0'"></div>
+  <div class="chip" style="background:#2c3e50" onclick="color='#2c3e50'"></div>
 </div>
 
+<!-- Thumbnails (your files sit side-by-side) -->
+<div id="thumbs">
+  <img src="page1.png" alt="page1">
+  <img src="page2.png" alt="page2">
+  <img src="page3.png" alt="page3">
+  <img src="page4.png" alt="page4">
+  <img src="page5.png" alt="page5">
+  <img src="page6.png" alt="page6">
+</div>
+
+<!-- Canvas area -->
 <div class="canvas-area">
   <div class="canvas-wrap" id="zoomArea">
     <canvas id="bgCanvas" width="800" height="800"></canvas>
@@ -115,12 +102,13 @@ footer a:hover { text-decoration: underline; }
   </div>
 </div>
 
+<!-- Stickers -->
 <div id="stickers">
-  <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2764.png">
-  <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2b50.png">
-  <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f33c.png">
-  <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f98b.png">
-  <img src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f308.png">
+  <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2764.png" alt="heart">
+  <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2b50.png" alt="star">
+  <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f33c.png" alt="flower">
+  <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f98b.png" alt="butterfly">
+  <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f308.png" alt="rainbow">
 </div>
 
 <footer>
@@ -129,26 +117,17 @@ footer a:hover { text-decoration: underline; }
 </footer>
 
 <script>
+/* ====== CANVAS + STATE ====== */
 const bgCanvas=document.getElementById("bgCanvas");
 const paintCanvas=document.getElementById("paintCanvas");
 const bgCtx=bgCanvas.getContext("2d");
 const ctx=paintCanvas.getContext("2d");
-let drawing=false,color="#000",size=12,mode="draw",selectedSticker=null;
+let drawing=false, color="#000", size=12, mode="draw", selectedSticker=null;
 
-/* 🎨 Colour Palette */
-(function(){
-  const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff",
-  "#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3",
-  "#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0",
-  "#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
-  const p=document.getElementById("palette");
-  colours.forEach(c=>{
-    const d=document.createElement("div");
-    d.className="color";d.style.background=c;d.onclick=()=>color=c;p.appendChild(d);
-  });
-})();
+/* Size slider */
+document.getElementById("size").addEventListener("input", e => size = parseInt(e.target.value, 10));
 
-/* 🖼️ Load Images */
+/* ====== IMAGE LOADING (path-agnostic) ====== */
 function loadImage(src){
   const i=new Image();
   i.crossOrigin="anonymous";
@@ -156,53 +135,66 @@ function loadImage(src){
     bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
     bgCtx.drawImage(i,0,0,bgCanvas.width,bgCanvas.height);
   };
-  i.src=src;
+  i.src = src; // use the thumbnail's own URL to avoid path mistakes
 }
-window.addEventListener("load",()=>loadImage("page1.png"));
-document.querySelectorAll("#thumbs img").forEach(img=>img.onclick=()=>loadImage(img.src));
+/* Auto-load first thumbnail’s source (robust even if file is in a subpath) */
+document.addEventListener("DOMContentLoaded", ()=>{
+  const firstThumb=document.querySelector("#thumbs img");
+  if(firstThumb) loadImage(firstThumb.src);
+});
 
-/* ✏️ Drawing */
-document.getElementById("size").oninput=e=>size=parseInt(e.target.value,10);
-function pos(e){
+/* Click a thumbnail to change page */
+document.querySelectorAll("#thumbs img").forEach(img=>{
+  img.addEventListener("click",()=>loadImage(img.src));
+});
+
+/* ====== DRAWING / ERASING / STICKERS ====== */
+function canvasPos(e){
   const r=paintCanvas.getBoundingClientRect();
-  const sx=paintCanvas.width/r.width,sy=paintCanvas.height/r.height;
-  return {x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy};
+  const sx=paintCanvas.width/r.width, sy=paintCanvas.height/r.height;
+  return {x:(e.clientX-r.left)*sx, y:(e.clientY-r.top)*sy};
 }
 
-paintCanvas.addEventListener("pointerdown",e=>{
-  if(isZooming)return;
-  const p=pos(e);
-  if(mode==="draw"||mode==="erase"){drawing=true;ctx.beginPath();ctx.moveTo(p.x,p.y);}
-  else if(mode==="sticker"&&selectedSticker){
-    const s=new Image();s.crossOrigin="anonymous";s.src=selectedSticker;
-    s.onload=()=>ctx.drawImage(s,p.x-30,p.y-30,60,60);
+let isZooming=false;
+
+paintCanvas.addEventListener("pointerdown", e=>{
+  if(isZooming) return; // don’t draw while zoom/pan is active
+  const p=canvasPos(e);
+  if(mode==="draw"||mode==="erase"){
+    drawing=true; ctx.beginPath(); ctx.moveTo(p.x,p.y);
+  }else if(mode==="sticker" && selectedSticker){
+    const s=new Image(); s.crossOrigin="anonymous"; s.src=selectedSticker;
+    s.onload=()=>ctx.drawImage(s, p.x-30, p.y-30, 60, 60);
   }
 });
-paintCanvas.addEventListener("pointermove",e=>{
-  if(!drawing||isZooming)return;
-  ctx.lineWidth=size;ctx.lineCap="round";
-  ctx.globalCompositeOperation=(mode==="erase")?"destination-out":"source-over";
-  if(mode!=="erase")ctx.strokeStyle=color;
-  const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();ctx.beginPath();ctx.moveTo(p.x,p.y);
+paintCanvas.addEventListener("pointermove", e=>{
+  if(!drawing || isZooming) return;
+  ctx.lineWidth=size; ctx.lineCap="round";
+  ctx.globalCompositeOperation = (mode==="erase") ? "destination-out" : "source-over";
+  if(mode!=="erase") ctx.strokeStyle=color;
+  const p=canvasPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x,p.y);
 });
-paintCanvas.addEventListener("pointerup",()=>{drawing=false;ctx.beginPath();ctx.globalCompositeOperation="source-over";});
+paintCanvas.addEventListener("pointerup", ()=>{
+  drawing=false; ctx.beginPath(); ctx.globalCompositeOperation="source-over";
+});
 
+/* Toolbar */
 ["draw","sticker","erase"].forEach(m=>{
-  document.getElementById(m+"Btn").onclick=()=>{
+  document.getElementById(m+"Btn").addEventListener("click",()=>{
     mode=m;
     document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
     document.getElementById(m+"Btn").classList.add("active");
-  };
+  });
 });
-document.getElementById("clearBtn").onclick=()=>ctx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
+document.getElementById("clearBtn").addEventListener("click", ()=>ctx.clearRect(0,0,paintCanvas.width,paintCanvas.height));
 
-/* 💾 Save */
-document.getElementById("saveBtn").onclick=()=>{
+/* Save */
+document.getElementById("saveBtn").addEventListener("click", ()=>{
   const out=document.createElement("canvas");
-  out.width=800;out.height=800;
-  const octx=out.getContext("2d");
-  octx.drawImage(bgCanvas,0,0);
-  octx.drawImage(paintCanvas,0,0);
+  out.width=800; out.height=800;
+  const o=out.getContext("2d");
+  o.drawImage(bgCanvas,0,0);
+  o.drawImage(paintCanvas,0,0);
   out.toBlob(b=>{
     const a=document.createElement("a");
     a.href=URL.createObjectURL(b);
@@ -210,55 +202,81 @@ document.getElementById("saveBtn").onclick=()=>{
     a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   });
-};
+});
 
-/* 🌸 Stickers */
+/* Stickers */
 document.querySelectorAll("#stickers img").forEach(st=>{
-  st.onclick=()=>{
-    selectedSticker=st.src;
+  st.addEventListener("click", ()=>{
+    selectedSticker = st.src;
     mode="sticker";
     document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
     document.getElementById("stickerBtn").classList.add("active");
-  };
+  });
 });
 
-/* 🔍 Safe Zoom + Pan */
+/* ====== ZOOM + PAN (non-interfering) ====== */
 const wrap=document.getElementById("zoomArea");
-let scale=1,originX=0,originY=0,isPanning=false,startX=0,startY=0,lastDist=0,isZooming=false;
-function applyZoom(){wrap.style.transform=`translate(${originX}px,${originY}px) scale(${scale})`;}
-// Desktop zoom
-wrap.addEventListener("wheel",e=>{
+let scale=1, originX=0, originY=0, isPanning=false, startX=0, startY=0, lastDist=0;
+
+function applyZoom(){ wrap.style.transform = `translate(${originX}px,${originY}px) scale(${scale})`; }
+
+/* Desktop wheel zoom */
+wrap.addEventListener("wheel", e=>{
   e.preventDefault();
-  scale=Math.min(Math.max(1,scale-e.deltaY*0.001),3);
+  const delta = -e.deltaY * 0.001;
+  scale = Math.min(Math.max(1, scale + delta), 3);
   applyZoom();
 },{passive:false});
-// Pan desktop
-wrap.addEventListener("mousedown",e=>{if(scale<=1)return;isPanning=true;startX=e.clientX-originX;startY=e.clientY-originY;});
-window.addEventListener("mousemove",e=>{if(!isPanning)return;originX=e.clientX-startX;originY=e.clientY-startY;applyZoom();});
-window.addEventListener("mouseup",()=>isPanning=false);
-// Touch zoom + pan
-wrap.addEventListener("touchstart",e=>{
-  if(e.touches.length===2){isZooming=true;const dx=e.touches[0].clientX-e.touches[1].clientX;
-    const dy=e.touches[0].clientY-e.touches[1].clientY;lastDist=Math.hypot(dx,dy);}
-  else if(e.touches.length===1&&scale>1){isPanning=true;startX=e.touches[0].clientX-originX;startY=e.touches[0].clientY-originY;}
-},{passive:false});
-wrap.addEventListener("touchmove",e=>{
+
+/* Desktop drag pan (only when zoomed in) */
+wrap.addEventListener("mousedown", e=>{
+  if(scale<=1) return;
+  isPanning=true; startX=e.clientX-originX; startY=e.clientY-originY;
+});
+window.addEventListener("mousemove", e=>{
+  if(!isPanning) return;
+  originX = e.clientX - startX;
+  originY = e.clientY - startY;
+  applyZoom();
+});
+window.addEventListener("mouseup", ()=>{ isPanning=false; });
+
+/* Touch pinch + pan */
+wrap.addEventListener("touchstart", e=>{
   if(e.touches.length===2){
-    const dx=e.touches[0].clientX-e.touches[1].clientX;
-    const dy=e.touches[0].clientY-e.touches[1].clientY;
-    const dist=Math.hypot(dx,dy);
-    const diff=dist-lastDist;lastDist=dist;
-    scale=Math.min(Math.max(1,scale+diff*0.005),3);
-    applyZoom();isZooming=true;e.preventDefault();
-  } else if(e.touches.length===1&&isPanning){
-    originX=e.touches[0].clientX-startX;
-    originY=e.touches[0].clientY-startY;
-    applyZoom();e.preventDefault();
+    isZooming=true; // blocks drawing
+    const dx=e.touches[0].clientX - e.touches[1].clientX;
+    const dy=e.touches[0].clientY - e.touches[1].clientY;
+    lastDist = Math.hypot(dx,dy);
+  }else if(e.touches.length===1 && scale>1){
+    isPanning=true; startX=e.touches[0].clientX-originX; startY=e.touches[0].clientY-originY;
   }
 },{passive:false});
-wrap.addEventListener("touchend",e=>{
-  if(e.touches.length<2)isZooming=false;
-  if(e.touches.length===0)isPanning=false;
+
+wrap.addEventListener("touchmove", e=>{
+  if(e.touches.length===2){
+    const dx=e.touches[0].clientX - e.touches[1].clientX;
+    const dy=e.touches[0].clientY - e.touches[1].clientY;
+    const dist=Math.hypot(dx,dy);
+    const diff=dist-lastDist; lastDist=dist;
+    scale = Math.min(Math.max(1, scale + diff*0.005), 3);
+    applyZoom(); isZooming=true; e.preventDefault();
+  }else if(e.touches.length===1 && isPanning){
+    originX = e.touches[0].clientX - startX;
+    originY = e.touches[0].clientY - startY;
+    applyZoom(); e.preventDefault();
+  }
+},{passive:false});
+
+wrap.addEventListener("touchend", e=>{
+  if(e.touches.length<2) isZooming=false;
+  if(e.touches.length===0) isPanning=false;
 });
-document.getElementById("resetZoom").onclick=()=>{
-  scale=1;originX=0;originY=0;app
+
+/* Reset zoom */
+document.getElementById("resetZoom").addEventListener("click", ()=>{
+  scale=1; originX=0; originY=0; applyZoom();
+});
+</script>
+</body>
+</html>
