@@ -86,7 +86,7 @@ const bgCtx=bgCanvas.getContext("2d");
 const ctx=paintCanvas.getContext("2d");
 let drawing=false,color="#000",size=12,mode="draw",selectedSticker=null;
 
-// Simple helper to load & safely draw images
+// ===== Helper: Load image safely =====
 function loadImage(src){
  const img=new Image();
  img.crossOrigin="anonymous";
@@ -95,91 +95,8 @@ function loadImage(src){
    bgCtx.drawImage(img,0,0,bgCanvas.width,bgCanvas.height);
    localStorage.setItem("lastPage",src);
  };
- img.onerror=()=>console.warn("Image failed to load:",src);
  img.src=src;
 }
 
-// Preload
-window.addEventListener("load",()=>{
- const last=localStorage.getItem("lastPage")||"page1.png";
- loadImage(last);
-});
-
-// Thumbnails
-document.querySelectorAll("#thumbs img").forEach(img=>{
- img.onclick=()=>loadImage(img.src);
-});
-
-// Palette
-const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff",
- "#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3",
- "#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0",
- "#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
-const p=document.getElementById("palette");
-colours.forEach(c=>{const d=document.createElement("div");d.className="color";d.style.background=c;d.onclick=()=>color=c;p.appendChild(d);});
-
-// Drawing
-document.getElementById("size").oninput=e=>size=parseInt(e.target.value,10);
-function getPos(evt){
- const r=paintCanvas.getBoundingClientRect();
- const sx=paintCanvas.width/r.width, sy=paintCanvas.height/r.height;
- return {x:(evt.clientX-r.left)*sx,y:(evt.clientY-r.top)*sy};
-}
-paintCanvas.onpointerdown=e=>{
- const pos=getPos(e);
- if(mode==="draw"||mode==="erase"){drawing=true;ctx.beginPath();ctx.moveTo(pos.x,pos.y);}
- else if(mode==="sticker"&&selectedSticker){
-   const s=new Image();s.crossOrigin="anonymous";s.src=selectedSticker;
-   s.onload=()=>ctx.drawImage(s,pos.x-30,pos.y-30,60,60);
- }};
-paintCanvas.onpointermove=e=>{if(drawing&&(mode==="draw"||mode==="erase")){ctx.lineWidth=size;ctx.lineCap="round";ctx.globalCompositeOperation=(mode==="erase")?"destination-out":"source-over";if(mode!=="erase")ctx.strokeStyle=color;const pos=getPos(e);ctx.lineTo(pos.x,pos.y);ctx.stroke();ctx.beginPath();ctx.moveTo(pos.x,pos.y);}};
-paintCanvas.onpointerup=()=>{drawing=false;ctx.beginPath();ctx.globalCompositeOperation="source-over";};
-
-// Toolbar
-["draw","sticker","erase"].forEach(m=>{
- document.getElementById(m+"Btn").onclick=()=>{
-  mode=m;document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
-  document.getElementById(m+"Btn").classList.add("active");
- };
-});
-
-// Clear
-document.getElementById("clearBtn").onclick=()=>ctx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
-
-// Save
-document.getElementById("saveBtn").onclick=()=>{
- const out=document.createElement("canvas");out.width=800;out.height=800;
- const octx=out.getContext("2d");
- octx.drawImage(bgCanvas,0,0);octx.drawImage(paintCanvas,0,0);
- out.toBlob(blob=>{
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");a.href=url;a.download="Yiayia_Sienna_Artwork.png";
-  document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
- });
-};
-
-// Stickers
-document.querySelectorAll("#stickers img").forEach(st=>{
- st.onclick=()=>{
-  selectedSticker=st.src;mode="sticker";
-  document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
-  document.getElementById("stickerBtn").classList.add("active");
- };
-});
-
-// Zoom/Pan (kept simple)
-let scale=1,originX=0,originY=0,isPanning=false,startX,startY;
-const wrap=document.querySelector(".canvas-wrap");
-function applyTransform(){
- wrap.style.transform=`translate(${originX}px,${originY}px) scale(${scale})`;
- wrap.style.transformOrigin="center center";
-}
-wrap.onwheel=e=>{e.preventDefault();const z=e.deltaY<0?1.1:0.9;scale=Math.min(Math.max(0.5,scale*z),4);applyTransform();};
-wrap.onmousedown=e=>{isPanning=true;startX=e.clientX-originX;startY=e.clientY-originY;};
-window.onmouseup=()=>isPanning=false;
-window.onmousemove=e=>{if(!isPanning)return;originX=e.clientX-startX;originY=e.clientY-startY;applyTransform();};
-wrap.ondblclick=()=>{scale=1;originX=0;originY=0;applyTransform();};
-</script>
-</body>
-</html>
+// ===== Load last page or default =====
+window.addEventListener("load",()
