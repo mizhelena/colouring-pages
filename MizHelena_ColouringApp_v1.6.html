@@ -43,7 +43,7 @@
  #thumbs img:hover{transform:scale(1.05);}
  .canvas-wrap{
    position:relative;width:min(800px,95vw);margin:20px auto;
-   touch-action:none; /* required for pinch zoom */
+   touch-action:none;
  }
  #bgCanvas{
    display:block;width:100%;height:auto;border-radius:10px;background:white;
@@ -87,4 +87,149 @@
 
 <div id="thumbs">
  <img src="page1.png"><img src="page2.png"><img src="page3.png">
- <img
+ <img src="page4.png"><img src="page5.png"><img src="page6.png">
+</div>
+
+<div class="canvas-wrap">
+  <canvas id="bgCanvas" width="800" height="800"></canvas>
+  <canvas id="paintCanvas" width="800" height="800"></canvas>
+</div>
+
+<div id="stickers">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2764.png" alt="heart">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2b50.png" alt="star">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f33c.png" alt="flower">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f98b.png" alt="butterfly">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f308.png" alt="rainbow">
+</div>
+
+<footer>
+ Made with ❤️ by Miz Helena Children’s Books ·
+ <a href="https://mizhelenabooks.com.au" target="_blank">mizhelenabooks.com.au</a>
+</footer>
+
+<script>
+const bgCanvas=document.getElementById("bgCanvas");
+const paintCanvas=document.getElementById("paintCanvas");
+const bgCtx=bgCanvas.getContext("2d");
+const ctx=paintCanvas.getContext("2d");
+
+let drawing=false,color="#000",size=12,mode="draw",currentImg=null,selectedSticker=null;
+document.getElementById("size").addEventListener("input",e=>size=parseInt(e.target.value,10));
+
+function getCanvasPos(evt){
+  const rect=paintCanvas.getBoundingClientRect();
+  const scaleX=paintCanvas.width/rect.width;
+  const scaleY=paintCanvas.height/rect.height;
+  return {x:(evt.clientX-rect.left)*scaleX,y:(evt.clientY-rect.top)*scaleY};
+}
+
+function drawLine(pos){
+  ctx.lineWidth=size;
+  ctx.lineCap="round";
+  if(mode==="erase"){
+    ctx.globalCompositeOperation="destination-out";
+  }else{
+    ctx.globalCompositeOperation="source-over";
+    ctx.strokeStyle=color;
+  }
+  ctx.lineTo(pos.x,pos.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(pos.x,pos.y);
+}
+
+paintCanvas.addEventListener("pointerdown",e=>{
+  const pos=getCanvasPos(e);
+  if(mode==="draw"||mode==="erase"){
+    drawing=true;ctx.beginPath();ctx.moveTo(pos.x,pos.y);
+  }else if(mode==="sticker"&&selectedSticker){
+    const img=new Image();
+    img.crossOrigin="anonymous";
+    img.src=selectedSticker;
+    img.onload=()=>ctx.drawImage(img,pos.x-30,pos.y-30,60,60);
+  }
+});
+paintCanvas.addEventListener("pointermove",e=>{
+  if(drawing&&(mode==="draw"||mode==="erase"))drawLine(getCanvasPos(e));
+});
+paintCanvas.addEventListener("pointerup",()=>{drawing=false;ctx.beginPath();ctx.globalCompositeOperation="source-over";});
+
+// ====== PALETTE ======
+(function(){
+  const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff",
+  "#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3",
+  "#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0",
+  "#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
+  const p=document.getElementById("palette");
+  colours.forEach(c=>{
+    const d=document.createElement("div");
+    d.className="color";d.style.background=c;d.onclick=()=>color=c;p.appendChild(d);
+  });
+})();
+
+// ====== THUMBNAILS WITH MEMORY ======
+const thumbs=document.querySelectorAll("#thumbs img");
+thumbs.forEach(img=>{
+  img.addEventListener("click",()=>{
+    const i=new Image();
+    i.crossOrigin="anonymous";
+    i.src=img.src;
+    i.onload=()=>{
+      currentImg=i;
+      bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
+      bgCtx.drawImage(i,0,0,bgCanvas.width,bgCanvas.height);
+      bgCanvas.style.display="block";
+      paintCanvas.style.display="block";
+      localStorage.setItem("lastColouringPage",img.src);
+    };
+  });
+});
+
+// Auto-load last image or first
+window.addEventListener("load",()=>{
+  const last=localStorage.getItem("lastColouringPage");
+  const img=new Image();
+  img.crossOrigin="anonymous";
+  img.src=last|| (thumbs[0]?thumbs[0].src:"");
+  img.onload=()=>{
+    currentImg=img;
+    bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
+    bgCtx.drawImage(img,0,0,bgCanvas.width,bgCanvas.height);
+    bgCanvas.style.display="block";
+    paintCanvas.style.display="block";
+  };
+});
+
+// ====== TOOLBAR MODES ======
+["draw","sticker","erase"].forEach(m=>{
+  document.getElementById(m+"Btn").onclick=()=>{
+    mode=m;
+    document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
+    document.getElementById(m+"Btn").classList.add("active");
+  };
+});
+
+// ====== CLEAR ======
+document.getElementById("clearBtn").onclick=()=>ctx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
+
+// ====== SAVE ======
+document.getElementById("saveBtn").onclick=()=>{
+  const out=document.createElement("canvas");
+  out.width=800;out.height=800;
+  const octx=out.getContext("2d");
+  octx.drawImage(bgCanvas,0,0);
+  octx.drawImage(paintCanvas,0,0);
+  if(out.toBlob){
+    out.toBlob(blob=>{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url;a.download="Yiayia_Sienna_Artwork.png";
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+    });
+  }
+};
+
+// ====== STICKERS ======
+document.querySelectorAll("#sticke
