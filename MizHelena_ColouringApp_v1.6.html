@@ -5,42 +5,54 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Yiayia & Sienna’s Colouring Fun</title>
 <style>
-  html,body{margin:0;font-family:'Poppins',system-ui,sans-serif;
-    background:linear-gradient(135deg,#ffeaf5,#e6f4ff,#fff5fb);color:#333;}
+  html,body{
+    margin:0;
+    font-family:'Poppins',system-ui,sans-serif;
+    background:linear-gradient(135deg,#ffeaf5,#e6f4ff,#fff5fb);
+    color:#333;
+  }
   header{text-align:center;padding:12px 0;}
   header h1{margin:0;font-size:1.9rem;line-height:1.3;}
-  #toolbar{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;
+
+  #toolbar{
+    display:flex;justify-content:center;align-items:center;flex-wrap:wrap;
     background:rgba(255,255,255,0.9);padding:8px;gap:10px;
-    box-shadow:0 2px 6px rgba(0,0,0,.1);position:sticky;top:0;z-index:10;}
-  button{border:none;border-radius:12px;background:white;padding:8px 14px;font-size:.9rem;cursor:pointer;color:#333;
-    box-shadow:0 2px 5px rgba(0,0,0,.1);transition:.2s;}
+    box-shadow:0 2px 6px rgba(0,0,0,.1);position:sticky;top:0;z-index:10;
+  }
+  button{
+    border:none;border-radius:12px;background:white;padding:8px 14px;font-size:.9rem;cursor:pointer;color:#333;
+    box-shadow:0 2px 5px rgba(0,0,0,.1);transition:all .2s;
+  }
   button:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,.15);}
   button.active{background:#ffe4f0;font-weight:bold;}
   .sizegroup{display:flex;align-items:center;gap:8px;background:white;border-radius:12px;
     padding:6px 10px;box-shadow:0 2px 5px rgba(0,0,0,.1);}
   .sizegroup input[type=range]{width:140px}
 
-  /* Static, always-visible palette */
+  /* Always-visible palette chips (simple + robust) */
   #palette{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:10px;}
-  .chip{width:28px;height:28px;border-radius:50%;border:2px solid #fff;
-    box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer;}
+  .chip{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer;}
 
   #thumbs{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
   #thumbs img{width:110px;border-radius:6px;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.15);transition:.2s;}
   #thumbs img:hover{transform:scale(1.05);}
 
   .canvas-area{width:min(800px,95vw);margin:20px auto;overflow:hidden;}
-  .canvas-wrap{position:relative;transform-origin:center center;transition:transform .1s ease-out;touch-action:none;}
-  #bgCanvas{display:block;width:100%;height:auto;border-radius:10px;background:white;box-shadow:0 2px 6px rgba(0,0,0,.15);}
-  #paintCanvas{position:absolute;inset:0;width:100%;height:100%;border-radius:10px;touch-action:none;}
+  /* NOTE: no CSS transform zoom here — we render zoom INSIDE the canvases */
+  #bgCanvas{
+    display:block;width:100%;height:auto;border-radius:10px;background:white;
+    box-shadow:0 2px 6px rgba(0,0,0,.15);
+  }
+  #paintCanvas{
+    position:relative;display:block;width:100%;height:auto;margin-top:-100%;
+    /* paintCanvas visually overlays bgCanvas because both are the same size and stacked by negative margin */
+    pointer-events:auto; /* we receive drawing events here */
+    border-radius:10px;
+  }
 
   #stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
   #stickers img{width:60px;height:60px;cursor:pointer;border-radius:10px;transition:transform .2s;box-shadow:0 2px 5px rgba(0,0,0,.1);}
   #stickers img:hover{transform:scale(1.1);}
-
-  #resetZoom{display:block;margin:10px auto;padding:8px 14px;border:none;border-radius:10px;background:white;
-    box-shadow:0 2px 5px rgba(0,0,0,.1);cursor:pointer;}
-  #resetZoom:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,.15);}
 
   footer{text-align:center;font-size:.9rem;color:#666;padding:14px 0 24px;}
   footer a{color:#888;text-decoration:none;} footer a:hover{text-decoration:underline;}
@@ -61,11 +73,8 @@
   </div>
 </div>
 
-<button id="resetZoom">🔄 Reset Zoom</button>
-
-<!-- Static palette (no JS needed to show) -->
+<!-- Palette chips (click to set color) -->
 <div id="palette">
-  <!-- Pastels + basics; each chip sets global 'color' -->
   <div class="chip" style="background:#e74c3c" onclick="color='#e74c3c'"></div>
   <div class="chip" style="background:#e67e22" onclick="color='#e67e22'"></div>
   <div class="chip" style="background:#f1c40f" onclick="color='#f1c40f'"></div>
@@ -84,7 +93,7 @@
   <div class="chip" style="background:#2c3e50" onclick="color='#2c3e50'"></div>
 </div>
 
-<!-- Thumbnails (your files sit side-by-side) -->
+<!-- Thumbnails -->
 <div id="thumbs">
   <img src="page1.png" alt="page1">
   <img src="page2.png" alt="page2">
@@ -94,12 +103,10 @@
   <img src="page6.png" alt="page6">
 </div>
 
-<!-- Canvas area -->
+<!-- Canvases (same resolution); bgCanvas shows image, paintCanvas shows strokes (both rendered with internal transform) -->
 <div class="canvas-area">
-  <div class="canvas-wrap" id="zoomArea">
-    <canvas id="bgCanvas" width="800" height="800"></canvas>
-    <canvas id="paintCanvas" width="800" height="800"></canvas>
-  </div>
+  <canvas id="bgCanvas" width="800" height="800"></canvas>
+  <canvas id="paintCanvas" width="800" height="800"></canvas>
 </div>
 
 <!-- Stickers -->
@@ -118,165 +125,314 @@
 
 <script>
 /* ====== CANVAS + STATE ====== */
-const bgCanvas=document.getElementById("bgCanvas");
-const paintCanvas=document.getElementById("paintCanvas");
-const bgCtx=bgCanvas.getContext("2d");
-const ctx=paintCanvas.getContext("2d");
-let drawing=false, color="#000", size=12, mode="draw", selectedSticker=null;
+const bgCanvas = document.getElementById('bgCanvas');
+const paintCanvas = document.getElementById('paintCanvas');
+const bgCtx = bgCanvas.getContext('2d');
+const paintDispCtx = paintCanvas.getContext('2d'); // display (transformed) strokes
 
-/* Size slider */
-document.getElementById("size").addEventListener("input", e => size = parseInt(e.target.value, 10));
+// Offscreen stroke buffer in IMAGE space (so drawing is stable while zoomed)
+const paintRaw = document.createElement('canvas');
+paintRaw.width = 800; paintRaw.height = 800;
+const paintRawCtx = paintRaw.getContext('2d');
 
-/* ====== IMAGE LOADING (path-agnostic) ====== */
+let drawing = false, color = '#000', size = 12, mode = 'draw', selectedSticker = null;
+
+// View transform (canvas-level zoom/pan)
+let viewScale = 1;            // 1 to 1.8
+let viewX = 0, viewY = 0;     // pan in image pixels (transformed at render)
+const MIN_SCALE = 1;
+const MAX_SCALE = 1.8;
+
+// Smooth zoom tween
+let targetScale = 1;
+let animReq = null;
+
+// Current image
+let bgImage = new Image();
+bgImage.crossOrigin = 'anonymous';
+
+/* ====== RENDER (draw both layers using same transform) ====== */
+function render() {
+  // Clear and draw background image with transform
+  bgCtx.setTransform(1,0,0,1,0,0);
+  bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
+  bgCtx.setTransform(viewScale, 0, 0, viewScale, viewX, viewY);
+  if (bgImage) bgCtx.drawImage(bgImage, 0, 0, 800, 800);
+
+  // Clear and draw stroke layer with same transform
+  paintDispCtx.setTransform(1,0,0,1,0,0);
+  paintDispCtx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
+  paintDispCtx.setTransform(viewScale, 0, 0, viewScale, viewX, viewY);
+  paintDispCtx.drawImage(paintRaw, 0, 0);
+}
+
+// Convert pointer (screen) coords to IMAGE coords (inverse transform)
+function toImageSpace(clientX, clientY) {
+  const rect = paintCanvas.getBoundingClientRect();
+  const xScreen = (clientX - rect.left) * (paintCanvas.width / rect.width);
+  const yScreen = (clientY - rect.top)  * (paintCanvas.height / rect.height);
+  const xImg = (xScreen - viewX) / viewScale;
+  const yImg = (yScreen - viewY) / viewScale;
+  return { x:xImg, y:yImg };
+}
+
+// Load image
 function loadImage(src){
-  const i=new Image();
-  i.crossOrigin="anonymous";
-  i.onload=()=>{
-    bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
-    bgCtx.drawImage(i,0,0,bgCanvas.width,bgCanvas.height);
-  };
-  i.src = src; // use the thumbnail's own URL to avoid path mistakes
-}
-/* Auto-load first thumbnail’s source (robust even if file is in a subpath) */
-document.addEventListener("DOMContentLoaded", ()=>{
-  const firstThumb=document.querySelector("#thumbs img");
-  if(firstThumb) loadImage(firstThumb.src);
-});
-
-/* Click a thumbnail to change page */
-document.querySelectorAll("#thumbs img").forEach(img=>{
-  img.addEventListener("click",()=>loadImage(img.src));
-});
-
-/* ====== DRAWING / ERASING / STICKERS ====== */
-function canvasPos(e){
-  const r=paintCanvas.getBoundingClientRect();
-  const sx=paintCanvas.width/r.width, sy=paintCanvas.height/r.height;
-  return {x:(e.clientX-r.left)*sx, y:(e.clientY-r.top)*sy};
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => { bgImage = img; render(); };
+  img.src = src;
 }
 
-let isZooming=false;
+// Auto-load first thumb’s source (robust no matter path)
+window.addEventListener('load', ()=>{
+  const first = document.querySelector('#thumbs img');
+  if (first) loadImage(first.src);
+});
+document.querySelectorAll('#thumbs img').forEach(img=>{
+  img.addEventListener('click', ()=>loadImage(img.src));
+});
 
-paintCanvas.addEventListener("pointerdown", e=>{
-  if(isZooming) return; // don’t draw while zoom/pan is active
-  const p=canvasPos(e);
-  if(mode==="draw"||mode==="erase"){
-    drawing=true; ctx.beginPath(); ctx.moveTo(p.x,p.y);
-  }else if(mode==="sticker" && selectedSticker){
-    const s=new Image(); s.crossOrigin="anonymous"; s.src=selectedSticker;
-    s.onload=()=>ctx.drawImage(s, p.x-30, p.y-30, 60, 60);
+// Size slider
+document.getElementById('size').addEventListener('input', e=> size = parseInt(e.target.value,10));
+
+// Drawing / erasing / stickers (write into paintRaw in IMAGE space)
+paintCanvas.addEventListener('pointerdown', e=>{
+  // Only left click or touch for drawing; right click reserved for pan
+  if (e.button === 2) return;
+  const p = toImageSpace(e.clientX, e.clientY);
+  if (mode === 'draw' || mode === 'erase') {
+    drawing = true;
+    paintRawCtx.beginPath();
+    paintRawCtx.moveTo(p.x, p.y);
+  } else if (mode === 'sticker' && selectedSticker) {
+    const s = new Image();
+    s.crossOrigin = 'anonymous';
+    s.onload = ()=> {
+      // Stickers placed at fixed image-space size (60x60)
+      paintRawCtx.drawImage(s, p.x - 30, p.y - 30, 60, 60);
+      render();
+    };
+    s.src = selectedSticker;
   }
 });
-paintCanvas.addEventListener("pointermove", e=>{
-  if(!drawing || isZooming) return;
-  ctx.lineWidth=size; ctx.lineCap="round";
-  ctx.globalCompositeOperation = (mode==="erase") ? "destination-out" : "source-over";
-  if(mode!=="erase") ctx.strokeStyle=color;
-  const p=canvasPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p.x,p.y);
-});
-paintCanvas.addEventListener("pointerup", ()=>{
-  drawing=false; ctx.beginPath(); ctx.globalCompositeOperation="source-over";
+
+paintCanvas.addEventListener('pointermove', e=>{
+  if (!drawing) return;
+  const p = toImageSpace(e.clientX, e.clientY);
+  paintRawCtx.lineWidth = size;
+  paintRawCtx.lineCap = 'round';
+  if (mode === 'erase') {
+    paintRawCtx.globalCompositeOperation = 'destination-out';
+  } else {
+    paintRawCtx.globalCompositeOperation = 'source-over';
+    paintRawCtx.strokeStyle = color;
+  }
+  paintRawCtx.lineTo(p.x, p.y);
+  paintRawCtx.stroke();
+  paintRawCtx.beginPath();
+  paintRawCtx.moveTo(p.x, p.y);
+  render();
 });
 
-/* Toolbar */
-["draw","sticker","erase"].forEach(m=>{
-  document.getElementById(m+"Btn").addEventListener("click",()=>{
-    mode=m;
-    document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
-    document.getElementById(m+"Btn").classList.add("active");
+paintCanvas.addEventListener('pointerup', ()=>{
+  drawing = false;
+  paintRawCtx.beginPath();
+  paintRawCtx.globalCompositeOperation = 'source-over';
+});
+
+// Prevent context menu on canvas (we use right-click for panning)
+paintCanvas.addEventListener('contextmenu', e=>e.preventDefault());
+
+// Toolbar
+['draw','sticker','erase'].forEach(m=>{
+  document.getElementById(m+'Btn').addEventListener('click', ()=>{
+    mode = m;
+    document.querySelectorAll('#toolbar button').forEach(b=>b.classList.remove('active'));
+    document.getElementById(m+'Btn').classList.add('active');
   });
 });
-document.getElementById("clearBtn").addEventListener("click", ()=>ctx.clearRect(0,0,paintCanvas.width,paintCanvas.height));
 
-/* Save */
-document.getElementById("saveBtn").addEventListener("click", ()=>{
-  const out=document.createElement("canvas");
-  out.width=800; out.height=800;
-  const o=out.getContext("2d");
-  o.drawImage(bgCanvas,0,0);
-  o.drawImage(paintCanvas,0,0);
-  out.toBlob(b=>{
-    const a=document.createElement("a");
-    a.href=URL.createObjectURL(b);
-    a.download="Yiayia_Sienna_Artwork.png";
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  paintRawCtx.setTransform(1,0,0,1,0,0);
+  paintRawCtx.clearRect(0,0,paintRaw.width,paintRaw.height);
+  render();
+});
+
+// Save merged PNG
+document.getElementById('saveBtn').addEventListener('click', ()=>{
+  const out = document.createElement('canvas');
+  out.width = 800; out.height = 800;
+  const o = out.getContext('2d');
+  o.drawImage(bgImage, 0, 0, 800, 800);
+  o.drawImage(paintRaw, 0, 0);
+  out.toBlob(blob=>{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='Yiayia_Sienna_Artwork.png';
     a.click();
-    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  });
+    setTimeout(()=>URL.revokeObjectURL(a.href), 800);
+  }, 'image/png');
 });
 
-/* Stickers */
-document.querySelectorAll("#stickers img").forEach(st=>{
-  st.addEventListener("click", ()=>{
+// Stickers selector
+document.querySelectorAll('#stickers img').forEach(st=>{
+  st.addEventListener('click', ()=>{
     selectedSticker = st.src;
-    mode="sticker";
-    document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
-    document.getElementById("stickerBtn").classList.add("active");
+    mode='sticker';
+    document.querySelectorAll('#toolbar button').forEach(b=>b.classList.remove('active'));
+    document.getElementById('stickerBtn').classList.add('active');
   });
 });
 
-/* ====== ZOOM + PAN (non-interfering) ====== */
-const wrap=document.getElementById("zoomArea");
-let scale=1, originX=0, originY=0, isPanning=false, startX=0, startY=0, lastDist=0;
+/* ====== TRUE CANVAS ZOOM & PAN ======
+   - Scroll to zoom (desktop)
+   - Two-finger pinch to zoom (mobile)
+   - Right-click drag (desktop) or two-finger drag (mobile) to pan
+   - Drawing uses IMAGE space (so canvas doesn't “slide” while colouring)
+*/
+let isPanning = false;
+let panStartX = 0, panStartY = 0;
 
-function applyZoom(){ wrap.style.transform = `translate(${originX}px,${originY}px) scale(${scale})`; }
+// Smoothly tween to targetScale
+function animateZoom() {
+  if (Math.abs(targetScale - viewScale) < 0.002) { viewScale = targetScale; render(); animReq = null; return; }
+  viewScale += (targetScale - viewScale) * 0.18; // easing
+  render();
+  animReq = requestAnimationFrame(animateZoom);
+}
 
-/* Desktop wheel zoom */
-wrap.addEventListener("wheel", e=>{
+// Zoom around a screen point (keeps cursor anchored)
+function zoomAt(clientX, clientY, deltaScale) {
+  const rect = paintCanvas.getBoundingClientRect();
+  const xScreen = (clientX - rect.left) * (paintCanvas.width / rect.width);
+  const yScreen = (clientY - rect.top)  * (paintCanvas.height / rect.height);
+
+  // world before
+  const wx = (xScreen - viewX) / viewScale;
+  const wy = (yScreen - viewY) / viewScale;
+
+  targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, viewScale * deltaScale));
+
+  // world after -> adjust viewX/Y to keep point anchored
+  viewX = xScreen - wx * targetScale;
+  viewY = yScreen - wy * targetScale;
+
+  if (!animReq) animReq = requestAnimationFrame(animateZoom);
+}
+
+// Desktop: wheel zoom (smooth)
+bgCanvas.addEventListener('wheel', (e)=>{
   e.preventDefault();
-  const delta = -e.deltaY * 0.001;
-  scale = Math.min(Math.max(1, scale + delta), 3);
-  applyZoom();
-},{passive:false});
+  const factor = 1 - (e.deltaY * 0.001); // small increments
+  zoomAt(e.clientX, e.clientY, factor);
+}, {passive:false});
+paintCanvas.addEventListener('wheel', (e)=>{
+  e.preventDefault();
+  const factor = 1 - (e.deltaY * 0.001);
+  zoomAt(e.clientX, e.clientY, factor);
+}, {passive:false});
 
-/* Desktop drag pan (only when zoomed in) */
-wrap.addEventListener("mousedown", e=>{
-  if(scale<=1) return;
-  isPanning=true; startX=e.clientX-originX; startY=e.clientY-originY;
+// Desktop: right-click drag to pan
+let rightDown = false;
+bgCanvas.addEventListener('mousedown', (e)=>{
+  if (e.button === 2) { rightDown = true; isPanning = true; panStartX = e.clientX - viewX; panStartY = e.clientY - viewY; }
 });
-window.addEventListener("mousemove", e=>{
-  if(!isPanning) return;
-  originX = e.clientX - startX;
-  originY = e.clientY - startY;
-  applyZoom();
+paintCanvas.addEventListener('mousedown', (e)=>{
+  if (e.button === 2) { rightDown = true; isPanning = true; panStartX = e.clientX - viewX; panStartY = e.clientY - viewY; }
 });
-window.addEventListener("mouseup", ()=>{ isPanning=false; });
+window.addEventListener('mousemove', (e)=>{
+  if (!isPanning) return;
+  viewX = e.clientX - panStartX;
+  viewY = e.clientY - panStartY;
+  render();
+});
+window.addEventListener('mouseup', ()=>{ rightDown = false; isPanning = false; });
+// prevent context menu (we use right-click)
+bgCanvas.addEventListener('contextmenu', e=>e.preventDefault());
+paintCanvas.addEventListener('contextmenu', e=>e.preventDefault());
 
-/* Touch pinch + pan */
-wrap.addEventListener("touchstart", e=>{
-  if(e.touches.length===2){
-    isZooming=true; // blocks drawing
-    const dx=e.touches[0].clientX - e.touches[1].clientX;
-    const dy=e.touches[0].clientY - e.touches[1].clientY;
-    lastDist = Math.hypot(dx,dy);
-  }else if(e.touches.length===1 && scale>1){
-    isPanning=true; startX=e.touches[0].clientX-originX; startY=e.touches[0].clientY-originY;
+// Mobile: two-finger pinch zoom + pan
+let touchPrevDist = 0;
+let touchPrevMid = null;
+
+function touchDistance(t0, t1){
+  const dx = t0.clientX - t1.clientX;
+  const dy = t0.clientY - t1.clientY;
+  return Math.hypot(dx, dy);
+}
+function touchMidpoint(t0, t1){
+  return { x:(t0.clientX + t1.clientX)/2, y:(t0.clientY + t1.clientY)/2 };
+}
+
+function handleTouchStart(e){
+  if (e.touches.length === 2){
+    // begin pinch
+    touchPrevDist = touchDistance(e.touches[0], e.touches[1]);
+    touchPrevMid = touchMidpoint(e.touches[0], e.touches[1]);
+    // while pinching, drawing should not start
+    drawing = false;
   }
-},{passive:false});
+}
+function handleTouchMove(e){
+  if (e.touches.length === 2){
+    e.preventDefault();
+    // pinch zoom
+    const dist = touchDistance(e.touches[0], e.touches[1]);
+    const mid = touchMidpoint(e.touches[0], e.touches[1]);
 
-wrap.addEventListener("touchmove", e=>{
-  if(e.touches.length===2){
-    const dx=e.touches[0].clientX - e.touches[1].clientX;
-    const dy=e.touches[0].clientY - e.touches[1].clientY;
-    const dist=Math.hypot(dx,dy);
-    const diff=dist-lastDist; lastDist=dist;
-    scale = Math.min(Math.max(1, scale + diff*0.005), 3);
-    applyZoom(); isZooming=true; e.preventDefault();
-  }else if(e.touches.length===1 && isPanning){
-    originX = e.touches[0].clientX - startX;
-    originY = e.touches[0].clientY - startY;
-    applyZoom(); e.preventDefault();
+    // scale factor relative to previous frame
+    const delta = dist / (touchPrevDist || dist);
+    touchPrevDist = dist;
+
+    // zoom around midpoint
+    zoomAt(mid.x, mid.y, delta);
+
+    // pan by midpoint movement
+    const dx = mid.x - touchPrevMid.x;
+    const dy = mid.y - touchPrevMid.y;
+    // convert screen dx/dy to canvas pixels
+    const rect = paintCanvas.getBoundingClientRect();
+    const sx = (paintCanvas.width / rect.width);
+    const sy = (paintCanvas.height / rect.height);
+    viewX += dx * sx;
+    viewY += dy * sy;
+
+    touchPrevMid = mid;
+    render();
   }
-},{passive:false});
+}
+function handleTouchEnd(e){
+  if (e.touches.length < 2){
+    touchPrevDist = 0;
+    touchPrevMid = null;
+  }
+}
 
-wrap.addEventListener("touchend", e=>{
-  if(e.touches.length<2) isZooming=false;
-  if(e.touches.length===0) isPanning=false;
-});
+bgCanvas.addEventListener('touchstart', handleTouchStart, {passive:false});
+bgCanvas.addEventListener('touchmove',  handleTouchMove,  {passive:false});
+bgCanvas.addEventListener('touchend',   handleTouchEnd,   {passive:false});
+paintCanvas.addEventListener('touchstart', handleTouchStart, {passive:false});
+paintCanvas.addEventListener('touchmove',  handleTouchMove,  {passive:false});
+paintCanvas.addEventListener('touchend',   handleTouchEnd,   {passive:false});
 
-/* Reset zoom */
-document.getElementById("resetZoom").addEventListener("click", ()=>{
-  scale=1; originX=0; originY=0; applyZoom();
-});
+// Double-click / double-tap to reset zoom
+let lastTapTime = 0;
+function resetZoom(){
+  targetScale = 1;
+  viewScale = 1; viewX = 0; viewY = 0;
+  render();
+}
+function onClick(e){
+  const now = Date.now();
+  if (now - lastTapTime < 350) resetZoom();
+  lastTapTime = now;
+}
+bgCanvas.addEventListener('click', onClick);
+paintCanvas.addEventListener('click', onClick);
+
+// Re-render on resize (keeps crisp mapping)
+window.addEventListener('resize', render);
 </script>
 </body>
 </html>
