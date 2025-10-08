@@ -35,12 +35,12 @@ button.active{background:#ffe4f0;font-weight:bold;}
   box-shadow:0 2px 5px rgba(0,0,0,.15);transition:.2s;}
 #thumbs img:hover{transform:scale(1.05);}
 
-/* ✅ Canvas area containment fix */
+/* ✅ Canvas containment */
 .canvas-area{
   position:relative;
   width:min(800px,95vw);
   margin:20px auto;
-  overflow:hidden;      /* keeps zoomed canvas inside */
+  overflow:hidden;
   touch-action:none;
 }
 .canvas-wrap{
@@ -83,9 +83,43 @@ footer a{color:#888;text-decoration:none;}footer a:hover{text-decoration:underli
 <div id="palette"></div>
 
 <div id="thumbs">
- <img src="page1.png"><img src="page2.png"><img src="page3.png">
- <img src="page4.png"><img src="page5.png"><img src="page6.png">
+ <img src="/page1.png"><img src="/page2.png"><img src="/page3.png">
+ <img src="/page4.png"><img src="/page5.png"><img src="/page6.png">
 </div>
 
-<!-- ✅ containment structure -->
 <div class="canvas-area">
+  <div class="canvas-wrap">
+    <canvas id="bgCanvas" width="800" height="800"></canvas>
+    <canvas id="paintCanvas" width="800" height="800"></canvas>
+  </div>
+</div>
+
+<div id="stickers">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2764.png">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2b50.png">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f33c.png">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f98b.png">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f308.png">
+</div>
+
+<footer>
+ Made with ❤️ by Miz Helena Children’s Books · 
+ <a href="https://mizhelenabooks.com.au" target="_blank">mizhelenabooks.com.au</a>
+</footer>
+
+<script>
+const bgCanvas=document.getElementById("bgCanvas");
+const paintCanvas=document.getElementById("paintCanvas");
+const bgCtx=bgCanvas.getContext("2d");
+const ctx=paintCanvas.getContext("2d");
+let drawing=false,color="#000",size=12,mode="draw",selectedSticker=null;
+
+// --- Image Loader ---
+function loadImage(src){
+ const img=new Image();
+ img.crossOrigin="anonymous";
+ img.onload=()=>{
+   requestAnimationFrame(()=>{
+     bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
+     bgCtx.drawImage(img,0,0,bgCanvas.width,bgCanvas.height);
+     bgCanvas.style.display="bloc
