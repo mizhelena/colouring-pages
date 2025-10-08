@@ -62,24 +62,28 @@ footer a{color:#888;text-decoration:none;} footer a:hover{text-decoration:underl
  </div>
 </div>
 
+<!-- 🎨 Colour Palette -->
 <div id="palette"></div>
 
+<!-- 📖 Thumbnails -->
 <div id="thumbs">
  <img src="page1.png"><img src="page2.png"><img src="page3.png">
  <img src="page4.png"><img src="page5.png"><img src="page6.png">
 </div>
 
+<!-- 🖼️ Main Canvas -->
 <div class="canvas-wrap" id="canvasWrap">
   <canvas id="bgCanvas" width="800" height="800"></canvas>
   <canvas id="paintCanvas" width="800" height="800"></canvas>
 </div>
 
+<!-- 🌸 Stickers -->
 <div id="stickers">
- <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2764.png">
- <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2b50.png">
- <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f33c.png">
- <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f98b.png">
- <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f308.png">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2764.png" alt="heart">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/2b50.png" alt="star">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f33c.png" alt="flower">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f98b.png" alt="butterfly">
+ <img crossorigin="anonymous" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f308.png" alt="rainbow">
 </div>
 
 <footer>
@@ -94,7 +98,23 @@ const bgCtx=bgCanvas.getContext("2d");
 const ctx=paintCanvas.getContext("2d");
 let drawing=false,color="#000",size=12,mode="draw",selectedSticker=null;
 
-// Load image (uses relative path)
+// 🎨 COLOUR PALETTE
+(function(){
+ const colours=["#e74c3c","#e67e22","#f1c40f","#2ecc71","#3498db","#9b59b6","#ff8bd6","#ffffff",
+ "#7f8c8d","#808000","#ffd700","#ff7f50","#dda0dd","#5dade2","#2c3e50","#8b4513","#f5deb3",
+ "#708090","#ffc0cb","#b0e0e6","#f8c8dc","#9370db","#fff176","#ffb347","#90ee90","#e0e0e0",
+ "#87cefa","#b39ddb","#ffcc80","#ffb6c1"];
+ const p=document.getElementById("palette");
+ colours.forEach(c=>{
+   const d=document.createElement("div");
+   d.className="color";
+   d.style.background=c;
+   d.onclick=()=>color=c;
+   p.appendChild(d);
+ });
+})();
+
+// 🖼️ IMAGE LOADING
 function loadImage(src){
  const i=new Image();
  i.crossOrigin="anonymous";
@@ -106,30 +126,23 @@ function loadImage(src){
  i.onerror=()=>console.error("❌ Image failed:", src);
  i.src=src;
 }
-
-// Auto load first image
 window.addEventListener("load",()=>loadImage("page1.png"));
+document.querySelectorAll("#thumbs img").forEach(img=>{img.onclick=()=>loadImage(img.src);});
 
-// Thumbnail click
-document.querySelectorAll("#thumbs img").forEach(img=>{
- img.onclick=()=>loadImage(img.src);
-});
-
-// Drawing tools
+// ✏️ DRAWING + ERASING
 document.getElementById("size").oninput=e=>size=parseInt(e.target.value,10);
 function pos(e){
  const r=paintCanvas.getBoundingClientRect();
  const sx=paintCanvas.width/r.width,sy=paintCanvas.height/r.height;
  return {x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy};
 }
-
 paintCanvas.onpointerdown=e=>{
  const p=pos(e);
  if(mode==="draw"||mode==="erase"){drawing=true;ctx.beginPath();ctx.moveTo(p.x,p.y);}
  else if(mode==="sticker"&&selectedSticker){
    const s=new Image();s.crossOrigin="anonymous";s.src=selectedSticker;
-   s.onload=()=>ctx.drawImage(s,p.x-30,p.y-30,60,60);}
-};
+   s.onload=()=>ctx.drawImage(s,p.x-30,p.y-30,60,60);
+ }};
 paintCanvas.onpointermove=e=>{
  if(drawing&&(mode==="draw"||mode==="erase")){
    ctx.lineWidth=size;ctx.lineCap="round";
@@ -139,20 +152,41 @@ paintCanvas.onpointermove=e=>{
  }};
 paintCanvas.onpointerup=()=>{drawing=false;ctx.beginPath();ctx.globalCompositeOperation="source-over";};
 
-["draw","sticker","erase"].forEach(m=>{
- document.getElementById(m+"Btn").onclick=()=>{
-   mode=m;document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
-   document.getElementById(m+"Btn").classList.add("active");
- };
-});
+// 🧼 CLEAR
 document.getElementById("clearBtn").onclick=()=>ctx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
 
-// Zoom + Pan
+// 💾 SAVE
+document.getElementById("saveBtn").onclick=()=>{
+ const out=document.createElement("canvas");
+ out.width=800;out.height=800;
+ const o=out.getContext("2d");
+ o.drawImage(bgCanvas,0,0);
+ o.drawImage(paintCanvas,0,0);
+ out.toBlob(b=>{
+   const u=URL.createObjectURL(b);
+   const a=document.createElement("a");
+   a.href=u;a.download="Yiayia_Sienna_Artwork.png";
+   document.body.appendChild(a);a.click();a.remove();
+   setTimeout(()=>URL.revokeObjectURL(u),1000);
+ });
+};
+
+// 🌸 STICKERS
+document.querySelectorAll("#stickers img").forEach(st=>{
+ st.onclick=()=>{
+   selectedSticker=st.src;
+   mode="sticker";
+   document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
+   document.getElementById("stickerBtn").classList.add("active");
+ };
+});
+
+// 🎚️ ZOOM + PAN
 const wrap=document.getElementById("canvasWrap");
 let scale=1,originX=0,originY=0,isPanning=false,startX=0,startY=0,lastDist=0;
 function apply(){wrap.style.transform=`translate(${originX}px,${originY}px) scale(${scale})`;}
 
-// Scroll zoom
+// Desktop scroll zoom
 wrap.addEventListener("wheel",e=>{
  e.preventDefault();
  const delta=-e.deltaY*0.001;
@@ -160,14 +194,16 @@ wrap.addEventListener("wheel",e=>{
  apply();
 },{passive:false});
 
-// Touch zoom and pan
+// Touch pinch + pan
 wrap.addEventListener("touchstart",e=>{
  if(e.touches.length===2){
    lastDist=Math.hypot(
      e.touches[0].clientX-e.touches[1].clientX,
      e.touches[0].clientY-e.touches[1].clientY);
  }else if(e.touches.length===1){
-   isPanning=true;startX=e.touches[0].clientX-originX;startY=e.touches[0].clientY-originY;
+   isPanning=true;
+   startX=e.touches[0].clientX-originX;
+   startY=e.touches[0].clientY-originY;
  }
 });
 wrap.addEventListener("touchmove",e=>{
@@ -175,10 +211,14 @@ wrap.addEventListener("touchmove",e=>{
    const d=Math.hypot(
      e.touches[0].clientX-e.touches[1].clientX,
      e.touches[0].clientY-e.touches[1].clientY);
-   const diff=d-lastDist;scale=Math.min(Math.max(1,scale+diff*0.005),3);
-   lastDist=d;apply();
+   const diff=d-lastDist;
+   scale=Math.min(Math.max(1,scale+diff*0.005),3);
+   lastDist=d;
+   apply();
  }else if(e.touches.length===1&&isPanning){
-   originX=e.touches[0].clientX-startX;originY=e.touches[0].clientY-startY;apply();
+   originX=e.touches[0].clientX-startX;
+   originY=e.touches[0].clientY-startY;
+   apply();
  }},{passive:false});
 wrap.addEventListener("touchend",()=>isPanning=false);
 </script>
