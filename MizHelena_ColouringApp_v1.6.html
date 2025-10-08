@@ -34,7 +34,8 @@ button.active{background:#ffe4f0;font-weight:bold;}
 #thumbs img{width:110px;border-radius:6px;cursor:pointer;
   box-shadow:0 2px 5px rgba(0,0,0,.15);transition:.2s;}
 #thumbs img:hover{transform:scale(1.05);}
-.canvas-wrap{position:relative;width:min(800px,95vw);margin:20px auto;}
+.canvas-area{position:relative;width:min(800px,95vw);margin:20px auto;overflow:hidden;touch-action:none;}
+.canvas-wrap{position:relative;transform-origin:center center;transition:transform .1s ease-out;}
 #bgCanvas{
   display:block;width:100%;height:auto;border-radius:10px;background:white;
   box-shadow:0 2px 6px rgba(0,0,0,.15);
@@ -71,9 +72,11 @@ footer a{color:#888;text-decoration:none;}footer a:hover{text-decoration:underli
  <img src="page4.png"><img src="page5.png"><img src="page6.png">
 </div>
 
-<div class="canvas-wrap">
+<div class="canvas-area">
+ <div class="canvas-wrap" id="canvasWrap">
   <canvas id="bgCanvas" width="800" height="800"></canvas>
   <canvas id="paintCanvas" width="800" height="800"></canvas>
+ </div>
 </div>
 
 <div id="stickers">
@@ -95,83 +98,13 @@ const bgCtx=bgCanvas.getContext("2d");
 const ctx=paintCanvas.getContext("2d");
 let drawing=false,color="#000",size=12,mode="draw",selectedSticker=null;
 
-// Load image
+// --- Load main image ---
 function loadImage(src){
  const img=new Image();
  img.crossOrigin="anonymous";
- img.onload=()=>{
-   bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
-   bgCtx.drawImage(img,0,0,bgCanvas.width,bgCanvas.height);
- };
+ img.onload=()=>{bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
+ bgCtx.drawImage(img,0,0,bgCanvas.width,bgCanvas.height);};
  img.src=src;
 }
-
-// Load first image
 window.addEventListener("load",()=>loadImage("page1.png"));
-
-// Thumbnails
-document.querySelectorAll("#thumbs img").forEach(img=>{
- img.addEventListener("click",()=>loadImage(img.src));
-});
-
-// Drawing setup
-document.getElementById("size").addEventListener("input",e=>size=parseInt(e.target.value,10));
-function getPos(e){
- const r=paintCanvas.getBoundingClientRect();
- const sx=paintCanvas.width/r.width,sy=paintCanvas.height/r.height;
- return {x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy};
-}
-paintCanvas.onpointerdown=e=>{
- const pos=getPos(e);
- if(mode==="draw"||mode==="erase"){
-   drawing=true;ctx.beginPath();ctx.moveTo(pos.x,pos.y);
- }else if(mode==="sticker"&&selectedSticker){
-   const s=new Image();s.crossOrigin="anonymous";s.src=selectedSticker;
-   s.onload=()=>ctx.drawImage(s,pos.x-30,pos.y-30,60,60);
- }};
-paintCanvas.onpointermove=e=>{
- if(drawing&&(mode==="draw"||mode==="erase")){
-   ctx.lineWidth=size;ctx.lineCap="round";
-   ctx.globalCompositeOperation=(mode==="erase")?"destination-out":"source-over";
-   if(mode!=="erase")ctx.strokeStyle=color;
-   const pos=getPos(e);ctx.lineTo(pos.x,pos.y);ctx.stroke();
-   ctx.beginPath();ctx.moveTo(pos.x,pos.y);
- }};
-paintCanvas.onpointerup=()=>{drawing=false;ctx.beginPath();ctx.globalCompositeOperation="source-over";};
-
-// Toolbar modes
-["draw","sticker","erase"].forEach(m=>{
- document.getElementById(m+"Btn").onclick=()=>{
-   mode=m;
-   document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
-   document.getElementById(m+"Btn").classList.add("active");
- };
-});
-
-// Clear
-document.getElementById("clearBtn").onclick=()=>ctx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
-
-// Save
-document.getElementById("saveBtn").onclick=()=>{
- const out=document.createElement("canvas");out.width=800;out.height=800;
- const octx=out.getContext("2d");
- octx.drawImage(bgCanvas,0,0);octx.drawImage(paintCanvas,0,0);
- out.toBlob(blob=>{
-   const url=URL.createObjectURL(blob);
-   const a=document.createElement("a");a.href=url;a.download="Yiayia_Sienna_Artwork.png";
-   document.body.appendChild(a);a.click();a.remove();
-   setTimeout(()=>URL.revokeObjectURL(url),1000);
- });
-};
-
-// Stickers
-document.querySelectorAll("#stickers img").forEach(st=>{
- st.onclick=()=>{
-   selectedSticker=st.src;mode="sticker";
-   document.querySelectorAll("#toolbar button").forEach(b=>b.classList.remove("active"));
-   document.getElementById("stickerBtn").classList.add("active");
- };
-});
-</script>
-</body>
-</html>
+document.querySelectorAll("#thumbs img").forEach(i=>i.oncli
