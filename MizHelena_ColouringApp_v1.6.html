@@ -29,7 +29,7 @@
     padding:6px 10px;box-shadow:0 2px 5px rgba(0,0,0,.1);}
   .sizegroup input[type=range]{width:140px}
 
-  /* Always-visible palette chips (simple + robust) */
+  /* Palette (always visible, no JS needed to show) */
   #palette{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:10px;}
   .chip{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer;}
 
@@ -37,17 +37,16 @@
   #thumbs img{width:110px;border-radius:6px;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.15);transition:.2s;}
   #thumbs img:hover{transform:scale(1.05);}
 
-  .canvas-area{width:min(800px,95vw);margin:20px auto;overflow:hidden;}
-  /* NOTE: no CSS transform zoom here — we render zoom INSIDE the canvases */
-  #bgCanvas{
-    display:block;width:100%;height:auto;border-radius:10px;background:white;
+  /* Canvas stage: two canvases stacked (background + paint overlay) */
+  .stage{position:relative;width:min(800px,95vw);margin:20px auto;}
+  #bgCanvas,#paintCanvas{
+    width:100%;height:auto;border-radius:10px;display:block;
     box-shadow:0 2px 6px rgba(0,0,0,.15);
+    touch-action:none; /* we handle gestures ourselves */
   }
   #paintCanvas{
-    position:relative;display:block;width:100%;height:auto;margin-top:-100%;
-    /* paintCanvas visually overlays bgCanvas because both are the same size and stacked by negative margin */
-    pointer-events:auto; /* we receive drawing events here */
-    border-radius:10px;
+    position:absolute;left:0;top:0; /* overlay */
+    box-shadow:none; /* avoid double shadow */
   }
 
   #stickers{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
@@ -103,8 +102,8 @@
   <img src="page6.png" alt="page6">
 </div>
 
-<!-- Canvases (same resolution); bgCanvas shows image, paintCanvas shows strokes (both rendered with internal transform) -->
-<div class="canvas-area">
+<!-- Canvases (stacked) -->
+<div class="stage">
   <canvas id="bgCanvas" width="800" height="800"></canvas>
   <canvas id="paintCanvas" width="800" height="800"></canvas>
 </div>
@@ -124,158 +123,184 @@
 </footer>
 
 <script>
-/* ====== CANVAS + STATE ====== */
+/* === Canvas & state === */
 const bgCanvas = document.getElementById('bgCanvas');
 const paintCanvas = document.getElementById('paintCanvas');
 const bgCtx = bgCanvas.getContext('2d');
-const paintDispCtx = paintCanvas.getContext('2d'); // display (transformed) strokes
+const dispCtx = paintCanvas.getContext('2d'); // display strokes
 
-// Offscreen stroke buffer in IMAGE space (so drawing is stable while zoomed)
+// Offscreen stroke buffer in image space (stable while zooming)
 const paintRaw = document.createElement('canvas');
 paintRaw.width = 800; paintRaw.height = 800;
-const paintRawCtx = paintRaw.getContext('2d');
+const rawCtx = paintRaw.getContext('2d');
 
-let drawing = false, color = '#000', size = 12, mode = 'draw', selectedSticker = null;
+let drawing=false, color='#000', size=12, mode='draw', selectedSticker=null;
 
-// View transform (canvas-level zoom/pan)
-let viewScale = 1;            // 1 to 1.8
-let viewX = 0, viewY = 0;     // pan in image pixels (transformed at render)
-const MIN_SCALE = 1;
-const MAX_SCALE = 1.8;
+// View (true canvas zoom/pan — not CSS)
+let viewScale = 1, viewX = 0, viewY = 0;
+let targetScale = 1, targetX = 0, targetY = 0;
+const MIN_SCALE = 1, MAX_SCALE = 1.8;
+let rafId = null;
 
-// Smooth zoom tween
-let targetScale = 1;
-let animReq = null;
-
-// Current image
+// Background image
 let bgImage = new Image();
 bgImage.crossOrigin = 'anonymous';
 
-/* ====== RENDER (draw both layers using same transform) ====== */
-function render() {
-  // Clear and draw background image with transform
+/* === Rendering with the SAME transform for bg & strokes === */
+function render(){
+  // BG
   bgCtx.setTransform(1,0,0,1,0,0);
-  bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
-  bgCtx.setTransform(viewScale, 0, 0, viewScale, viewX, viewY);
-  if (bgImage) bgCtx.drawImage(bgImage, 0, 0, 800, 800);
+  bgCtx.clearRect(0,0,800,800);
+  bgCtx.setTransform(viewScale,0,0,viewScale,viewX,viewY);
+  if(bgImage) bgCtx.drawImage(bgImage,0,0,800,800);
 
-  // Clear and draw stroke layer with same transform
-  paintDispCtx.setTransform(1,0,0,1,0,0);
-  paintDispCtx.clearRect(0,0,paintCanvas.width,paintCanvas.height);
-  paintDispCtx.setTransform(viewScale, 0, 0, viewScale, viewX, viewY);
-  paintDispCtx.drawImage(paintRaw, 0, 0);
+  // Strokes
+  dispCtx.setTransform(1,0,0,1,0,0);
+  dispCtx.clearRect(0,0,800,800);
+  dispCtx.setTransform(viewScale,0,0,viewScale,viewX,viewY);
+  dispCtx.drawImage(paintRaw,0,0);
 }
 
-// Convert pointer (screen) coords to IMAGE coords (inverse transform)
-function toImageSpace(clientX, clientY) {
+/* Gentle easing of BOTH scale and pan together */
+function animate(){
+  const k = 0.15; // easing factor (lower = gentler)
+  const ds = targetScale - viewScale;
+  const dx = targetX - viewX;
+  const dy = targetY - viewY;
+
+  // Stop if very close
+  if (Math.abs(ds) < 0.001 && Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5){
+    viewScale = targetScale; viewX = targetX; viewY = targetY;
+    rafId = null; render(); return;
+  }
+  viewScale += ds * k;
+  viewX     += dx * k;
+  viewY     += dy * k;
+
+  render();
+  rafId = requestAnimationFrame(animate);
+}
+
+/* Utility: screen → canvas pixels */
+function screenToCanvas(clientX, clientY){
   const rect = paintCanvas.getBoundingClientRect();
-  const xScreen = (clientX - rect.left) * (paintCanvas.width / rect.width);
-  const yScreen = (clientY - rect.top)  * (paintCanvas.height / rect.height);
-  const xImg = (xScreen - viewX) / viewScale;
-  const yImg = (yScreen - viewY) / viewScale;
-  return { x:xImg, y:yImg };
+  const x = (clientX - rect.left) * (paintCanvas.width / rect.width);
+  const y = (clientY - rect.top)  * (paintCanvas.height / rect.height);
+  return {x,y};
 }
 
-// Load image
+/* Utility: set new target zoom AROUND a screen point (keeps it anchored) */
+function setTargetZoomAt(clientX, clientY, factor){
+  // clamp target scale
+  const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, targetScale * factor));
+
+  // Find the world (image) point under the cursor BEFORE zoom
+  const {x:sx, y:sy} = screenToCanvas(clientX, clientY);
+  const wx = (sx - targetX) / targetScale;
+  const wy = (sy - targetY) / targetScale;
+
+  // Choose new target pan so the same world point remains under the cursor AFTER zoom
+  targetScale = newScale;
+  targetX = sx - wx * targetScale;
+  targetY = sy - wy * targetScale;
+
+  if(!rafId) rafId = requestAnimationFrame(animate);
+}
+
+/* Image loading */
 function loadImage(src){
   const img = new Image();
   img.crossOrigin = 'anonymous';
-  img.onload = () => { bgImage = img; render(); };
+  img.onload = ()=>{ bgImage = img; render(); };
   img.src = src;
 }
-
-// Auto-load first thumb’s source (robust no matter path)
 window.addEventListener('load', ()=>{
   const first = document.querySelector('#thumbs img');
-  if (first) loadImage(first.src);
+  if(first) loadImage(first.src);
 });
 document.querySelectorAll('#thumbs img').forEach(img=>{
   img.addEventListener('click', ()=>loadImage(img.src));
 });
 
-// Size slider
+/* Size slider */
 document.getElementById('size').addEventListener('input', e=> size = parseInt(e.target.value,10));
 
-// Drawing / erasing / stickers (write into paintRaw in IMAGE space)
+/* Convert pointer to IMAGE coords (inverse of current view) */
+function toImageSpace(clientX, clientY){
+  const {x:sx, y:sy} = screenToCanvas(clientX, clientY);
+  return { x:(sx - viewX)/viewScale, y:(sy - viewY)/viewScale };
+}
+
+/* Drawing / erasing / stickers — write to rawCtx in image space */
 paintCanvas.addEventListener('pointerdown', e=>{
-  // Only left click or touch for drawing; right click reserved for pan
+  // Left click / touch only (right click used for panning)
   if (e.button === 2) return;
   const p = toImageSpace(e.clientX, e.clientY);
-  if (mode === 'draw' || mode === 'erase') {
+  if(mode==='draw' || mode==='erase'){
     drawing = true;
-    paintRawCtx.beginPath();
-    paintRawCtx.moveTo(p.x, p.y);
-  } else if (mode === 'sticker' && selectedSticker) {
-    const s = new Image();
-    s.crossOrigin = 'anonymous';
-    s.onload = ()=> {
-      // Stickers placed at fixed image-space size (60x60)
-      paintRawCtx.drawImage(s, p.x - 30, p.y - 30, 60, 60);
-      render();
-    };
+    rawCtx.beginPath();
+    rawCtx.moveTo(p.x, p.y);
+  }else if(mode==='sticker' && selectedSticker){
+    const s = new Image(); s.crossOrigin='anonymous';
+    s.onload = ()=>{ rawCtx.drawImage(s, p.x-30, p.y-30, 60, 60); render(); };
     s.src = selectedSticker;
   }
 });
-
 paintCanvas.addEventListener('pointermove', e=>{
-  if (!drawing) return;
+  if(!drawing) return;
   const p = toImageSpace(e.clientX, e.clientY);
-  paintRawCtx.lineWidth = size;
-  paintRawCtx.lineCap = 'round';
-  if (mode === 'erase') {
-    paintRawCtx.globalCompositeOperation = 'destination-out';
-  } else {
-    paintRawCtx.globalCompositeOperation = 'source-over';
-    paintRawCtx.strokeStyle = color;
+  rawCtx.lineWidth = size;
+  rawCtx.lineCap = 'round';
+  if(mode==='erase'){
+    rawCtx.globalCompositeOperation = 'destination-out';
+  }else{
+    rawCtx.globalCompositeOperation = 'source-over';
+    rawCtx.strokeStyle = color;
   }
-  paintRawCtx.lineTo(p.x, p.y);
-  paintRawCtx.stroke();
-  paintRawCtx.beginPath();
-  paintRawCtx.moveTo(p.x, p.y);
+  rawCtx.lineTo(p.x, p.y);
+  rawCtx.stroke();
+  rawCtx.beginPath();
+  rawCtx.moveTo(p.x, p.y);
   render();
 });
-
 paintCanvas.addEventListener('pointerup', ()=>{
-  drawing = false;
-  paintRawCtx.beginPath();
-  paintRawCtx.globalCompositeOperation = 'source-over';
+  drawing=false; rawCtx.beginPath(); rawCtx.globalCompositeOperation='source-over';
 });
+paintCanvas.addEventListener('contextmenu', e=>e.preventDefault()); // keep right-click free for pan
 
-// Prevent context menu on canvas (we use right-click for panning)
-paintCanvas.addEventListener('contextmenu', e=>e.preventDefault());
-
-// Toolbar
+/* Toolbar modes */
 ['draw','sticker','erase'].forEach(m=>{
   document.getElementById(m+'Btn').addEventListener('click', ()=>{
-    mode = m;
+    mode=m;
     document.querySelectorAll('#toolbar button').forEach(b=>b.classList.remove('active'));
     document.getElementById(m+'Btn').classList.add('active');
   });
 });
 
+/* Clear strokes */
 document.getElementById('clearBtn').addEventListener('click', ()=>{
-  paintRawCtx.setTransform(1,0,0,1,0,0);
-  paintRawCtx.clearRect(0,0,paintRaw.width,paintRaw.height);
+  rawCtx.setTransform(1,0,0,1,0,0);
+  rawCtx.clearRect(0,0,800,800);
   render();
 });
 
-// Save merged PNG
+/* Save merged PNG (image + strokes in image space) */
 document.getElementById('saveBtn').addEventListener('click', ()=>{
   const out = document.createElement('canvas');
   out.width = 800; out.height = 800;
   const o = out.getContext('2d');
-  o.drawImage(bgImage, 0, 0, 800, 800);
-  o.drawImage(paintRaw, 0, 0);
+  if(bgImage) o.drawImage(bgImage,0,0,800,800);
+  o.drawImage(paintRaw,0,0);
   out.toBlob(blob=>{
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
     a.download='Yiayia_Sienna_Artwork.png';
     a.click();
-    setTimeout(()=>URL.revokeObjectURL(a.href), 800);
-  }, 'image/png');
+    setTimeout(()=>URL.revokeObjectURL(a.href),800);
+  },'image/png');
 });
 
-// Stickers selector
+/* Stickers select */
 document.querySelectorAll('#stickers img').forEach(st=>{
   st.addEventListener('click', ()=>{
     selectedSticker = st.src;
@@ -285,153 +310,98 @@ document.querySelectorAll('#stickers img').forEach(st=>{
   });
 });
 
-/* ====== TRUE CANVAS ZOOM & PAN ======
-   - Scroll to zoom (desktop)
-   - Two-finger pinch to zoom (mobile)
-   - Right-click drag (desktop) or two-finger drag (mobile) to pan
-   - Drawing uses IMAGE space (so canvas doesn't “slide” while colouring)
-*/
-let isPanning = false;
-let panStartX = 0, panStartY = 0;
+/* === Smooth zoom & pan controls === */
 
-// Smoothly tween to targetScale
-function animateZoom() {
-  if (Math.abs(targetScale - viewScale) < 0.002) { viewScale = targetScale; render(); animReq = null; return; }
-  viewScale += (targetScale - viewScale) * 0.18; // easing
-  render();
-  animReq = requestAnimationFrame(animateZoom);
-}
-
-// Zoom around a screen point (keeps cursor anchored)
-function zoomAt(clientX, clientY, deltaScale) {
-  const rect = paintCanvas.getBoundingClientRect();
-  const xScreen = (clientX - rect.left) * (paintCanvas.width / rect.width);
-  const yScreen = (clientY - rect.top)  * (paintCanvas.height / rect.height);
-
-  // world before
-  const wx = (xScreen - viewX) / viewScale;
-  const wy = (yScreen - viewY) / viewScale;
-
-  targetScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, viewScale * deltaScale));
-
-  // world after -> adjust viewX/Y to keep point anchored
-  viewX = xScreen - wx * targetScale;
-  viewY = yScreen - wy * targetScale;
-
-  if (!animReq) animReq = requestAnimationFrame(animateZoom);
-}
-
-// Desktop: wheel zoom (smooth)
-bgCanvas.addEventListener('wheel', (e)=>{
+/* Desktop: scroll to zoom (gentle) */
+function onWheel(e){
   e.preventDefault();
   const factor = 1 - (e.deltaY * 0.001); // small increments
-  zoomAt(e.clientX, e.clientY, factor);
-}, {passive:false});
-paintCanvas.addEventListener('wheel', (e)=>{
-  e.preventDefault();
-  const factor = 1 - (e.deltaY * 0.001);
-  zoomAt(e.clientX, e.clientY, factor);
-}, {passive:false});
+  setTargetZoomAt(e.clientX, e.clientY, factor);
+}
+bgCanvas.addEventListener('wheel', onWheel, {passive:false});
+paintCanvas.addEventListener('wheel', onWheel, {passive:false});
 
-// Desktop: right-click drag to pan
-let rightDown = false;
-bgCanvas.addEventListener('mousedown', (e)=>{
-  if (e.button === 2) { rightDown = true; isPanning = true; panStartX = e.clientX - viewX; panStartY = e.clientY - viewY; }
-});
-paintCanvas.addEventListener('mousedown', (e)=>{
-  if (e.button === 2) { rightDown = true; isPanning = true; panStartX = e.clientX - viewX; panStartY = e.clientY - viewY; }
-});
-window.addEventListener('mousemove', (e)=>{
-  if (!isPanning) return;
-  viewX = e.clientX - panStartX;
-  viewY = e.clientY - panStartY;
-  render();
-});
-window.addEventListener('mouseup', ()=>{ rightDown = false; isPanning = false; });
-// prevent context menu (we use right-click)
+/* Desktop: right-click drag to pan (while zoomed) */
+let rightPanning = false, panStartX = 0, panStartY = 0;
+function beginRightPan(e){
+  if(e.button!==2) return;
+  rightPanning = true;
+  const {x:sx, y:sy} = screenToCanvas(e.clientX, e.clientY);
+  panStartX = sx - targetX;
+  panStartY = sy - targetY;
+}
+function moveRightPan(e){
+  if(!rightPanning) return;
+  const {x:sx, y:sy} = screenToCanvas(e.clientX, e.clientY);
+  targetX = sx - panStartX;
+  targetY = sy - panStartY;
+  if(!rafId) rafId = requestAnimationFrame(animate);
+}
+function endRightPan(){ rightPanning = false; }
+bgCanvas.addEventListener('mousedown', beginRightPan);
+paintCanvas.addEventListener('mousedown', beginRightPan);
+window.addEventListener('mousemove', moveRightPan);
+window.addEventListener('mouseup', endRightPan);
 bgCanvas.addEventListener('contextmenu', e=>e.preventDefault());
 paintCanvas.addEventListener('contextmenu', e=>e.preventDefault());
 
-// Mobile: two-finger pinch zoom + pan
-let touchPrevDist = 0;
-let touchPrevMid = null;
+/* Mobile: two-finger pinch to zoom + pan (gentle) */
+let prevDist = 0, prevMid = null;
+function touchDist(t0,t1){ const dx=t0.clientX-t1.clientX, dy=t0.clientY-t1.clientY; return Math.hypot(dx,dy); }
+function touchMid(t0,t1){ return {x:(t0.clientX+t1.clientX)/2, y:(t0.clientY+t1.clientY)/2}; }
 
-function touchDistance(t0, t1){
-  const dx = t0.clientX - t1.clientX;
-  const dy = t0.clientY - t1.clientY;
-  return Math.hypot(dx, dy);
-}
-function touchMidpoint(t0, t1){
-  return { x:(t0.clientX + t1.clientX)/2, y:(t0.clientY + t1.clientY)/2 };
-}
-
-function handleTouchStart(e){
-  if (e.touches.length === 2){
-    // begin pinch
-    touchPrevDist = touchDistance(e.touches[0], e.touches[1]);
-    touchPrevMid = touchMidpoint(e.touches[0], e.touches[1]);
-    // while pinching, drawing should not start
-    drawing = false;
-  }
-}
-function handleTouchMove(e){
-  if (e.touches.length === 2){
+function onTouchStart(e){
+  if(e.touches.length===2){
     e.preventDefault();
-    // pinch zoom
-    const dist = touchDistance(e.touches[0], e.touches[1]);
-    const mid = touchMidpoint(e.touches[0], e.touches[1]);
-
-    // scale factor relative to previous frame
-    const delta = dist / (touchPrevDist || dist);
-    touchPrevDist = dist;
-
-    // zoom around midpoint
-    zoomAt(mid.x, mid.y, delta);
-
-    // pan by midpoint movement
-    const dx = mid.x - touchPrevMid.x;
-    const dy = mid.y - touchPrevMid.y;
-    // convert screen dx/dy to canvas pixels
-    const rect = paintCanvas.getBoundingClientRect();
-    const sx = (paintCanvas.width / rect.width);
-    const sy = (paintCanvas.height / rect.height);
-    viewX += dx * sx;
-    viewY += dy * sy;
-
-    touchPrevMid = mid;
-    render();
+    prevDist = touchDist(e.touches[0], e.touches[1]);
+    prevMid = touchMid(e.touches[0], e.touches[1]);
+    drawing = false; // don’t draw while pinching
   }
 }
-function handleTouchEnd(e){
-  if (e.touches.length < 2){
-    touchPrevDist = 0;
-    touchPrevMid = null;
+function onTouchMove(e){
+  if(e.touches.length===2){
+    e.preventDefault();
+    const dist = touchDist(e.touches[0], e.touches[1]);
+    const mid = touchMid(e.touches[0], e.touches[1]);
+
+    // Zoom around midpoint
+    const delta = dist / (prevDist || dist);
+    setTargetZoomAt(mid.x, mid.y, delta);
+    prevDist = dist;
+
+    // Pan by midpoint motion (towards target with easing)
+    const {x:sx, y:sy} = screenToCanvas(mid.x, mid.y);
+    const {x:psx, y:psy} = screenToCanvas(prevMid.x, prevMid.y);
+    const dx = sx - psx, dy = sy - psy;
+    targetX += dx; targetY += dy;
+    prevMid = mid;
+
+    if(!rafId) rafId = requestAnimationFrame(animate);
   }
 }
-
-bgCanvas.addEventListener('touchstart', handleTouchStart, {passive:false});
-bgCanvas.addEventListener('touchmove',  handleTouchMove,  {passive:false});
-bgCanvas.addEventListener('touchend',   handleTouchEnd,   {passive:false});
-paintCanvas.addEventListener('touchstart', handleTouchStart, {passive:false});
-paintCanvas.addEventListener('touchmove',  handleTouchMove,  {passive:false});
-paintCanvas.addEventListener('touchend',   handleTouchEnd,   {passive:false});
-
-// Double-click / double-tap to reset zoom
-let lastTapTime = 0;
-function resetZoom(){
-  targetScale = 1;
-  viewScale = 1; viewX = 0; viewY = 0;
-  render();
+function onTouchEnd(e){
+  if(e.touches.length<2){ prevDist=0; prevMid=null; }
 }
-function onClick(e){
-  const now = Date.now();
-  if (now - lastTapTime < 350) resetZoom();
-  lastTapTime = now;
-}
-bgCanvas.addEventListener('click', onClick);
-paintCanvas.addEventListener('click', onClick);
+[bgCanvas,paintCanvas].forEach(el=>{
+  el.addEventListener('touchstart', onTouchStart, {passive:false});
+  el.addEventListener('touchmove',  onTouchMove,  {passive:false});
+  el.addEventListener('touchend',   onTouchEnd,   {passive:false});
+});
 
-// Re-render on resize (keeps crisp mapping)
+/* Double-click / double-tap to reset (no button needed) */
+let lastTap=0;
+function onTap(e){
+  const now=Date.now();
+  if(now-lastTap<350){
+    targetScale=1; targetX=0; targetY=0;
+    if(!rafId) rafId = requestAnimationFrame(animate);
+  }
+  lastTap=now;
+}
+bgCanvas.addEventListener('click', onTap);
+paintCanvas.addEventListener('click', onTap);
+
+/* Re-render on resize */
 window.addEventListener('resize', render);
 </script>
 </body>
