@@ -80,7 +80,7 @@
  </div>
 </div>
 
-<!-- 🌈 Navigation buttons under toolbar -->
+<!-- 🌈 Navigation buttons -->
 <div id="navbuttons" style="text-align:center;margin:12px 0;">
   <button class="nav-btn" onclick="window.location='index.html'">🏠 Back to Start</button>
   <button class="nav-btn" onclick="window.open('https://mizhelenabooks.com.au/colouring-competition#submit','_blank')">✨ Submit Artwork</button>
@@ -135,17 +135,14 @@ const paintRaw=document.createElement("canvas");paintRaw.width=800;paintRaw.heig
 const rawCtx=paintRaw.getContext("2d");
 
 let drawing=false,color="#000",size=12,mode="draw",selectedSticker=null;
-
-/* View (true canvas zoom/pan) */
-let viewScale=1,viewX=0,viewY=0;
-let targetScale=1,targetX=0,targetY=0;
+let viewScale=1,viewX=0,viewY=0,targetScale=1,targetX=0,targetY=0;
 const MIN_SCALE=1,MAX_SCALE=1.8;
 let rafId=null;
+let keyPan=false; // Spacebar panning state
 
-/* Background image */
 let bgImage=new Image();bgImage.crossOrigin="anonymous";
 
-/* ===== Render both layers with same transform ===== */
+/* ===== Render both layers ===== */
 function render(){
   bgCtx.setTransform(1,0,0,1,0,0); bgCtx.clearRect(0,0,800,800);
   bgCtx.setTransform(viewScale,0,0,viewScale,viewX,viewY);
@@ -155,34 +152,32 @@ function render(){
   dispCtx.drawImage(paintRaw,0,0);
 }
 
-/* Gentle easing for BOTH scale & pan */
 function animate(){
   const k=0.12;
-  viewScale += (targetScale-viewScale)*k;
-  viewX     += (targetX-viewX)*k;
-  viewY     += (targetY-viewY)*k;
+  viewScale+=(targetScale-viewScale)*k;
+  viewX+=(targetX-viewX)*k;
+  viewY+=(targetY-viewY)*k;
   render();
-  if (Math.abs(targetScale-viewScale)>0.001 || Math.abs(targetX-viewX)>0.4 || Math.abs(targetY-viewY)>0.4){
+  if(Math.abs(targetScale-viewScale)>0.001 || Math.abs(targetX-viewX)>0.4 || Math.abs(targetY-viewY)>0.4){
     rafId=requestAnimationFrame(animate);
-  } else {rafId=null;}
+  }else{rafId=null;}
 }
 
-/* Utilities */
 function screenToCanvas(x,y){
   const r=paintCanvas.getBoundingClientRect();
-  return {x:(x-r.left)*(800/r.width), y:(y-r.top)*(800/r.height)};
+  return {x:(x-r.left)*(800/r.width),y:(y-r.top)*(800/r.height)};
 }
 function toImageSpace(x,y){
   const s=screenToCanvas(x,y);
-  return {x:(s.x-viewX)/viewScale, y:(s.y-viewY)/viewScale};
+  return {x:(s.x-viewX)/viewScale,y:(s.y-viewY)/viewScale};
 }
-function setTargetZoomAt(x,y,factor){
-  const newScale=Math.max(MIN_SCALE,Math.min(MAX_SCALE,targetScale*factor));
+function setTargetZoomAt(x,y,f){
+  const newScale=Math.max(MIN_SCALE,Math.min(MAX_SCALE,targetScale*f));
   const s=screenToCanvas(x,y);
-  const wx=(s.x-targetX)/targetScale, wy=(s.y-targetY)/targetScale;
+  const wx=(s.x-targetX)/targetScale,wy=(s.y-targetY)/targetScale;
   targetScale=newScale;
-  targetX=s.x-wx*newScale; targetY=s.y-wy*newScale;
-  if(!rafId) rafId=requestAnimationFrame(animate);
+  targetX=s.x-wx*newScale;targetY=s.y-wy*newScale;
+  if(!rafId)rafId=requestAnimationFrame(animate);
 }
 
 /* Load images */
@@ -193,10 +188,9 @@ document.querySelectorAll("#thumbs img").forEach(i=>i.onclick=()=>loadImage(i.sr
 /* Brush size */
 document.getElementById("size").oninput=e=>size=parseInt(e.target.value,10);
 
-/* Drawing / erasing / stickers */
+/* Drawing & stickers */
 paintCanvas.onpointerdown=e=>{
-  if (keyPan) return;
-  if (e.button===2) return;
+  if(keyPan||e.button===2)return;
   const p=toImageSpace(e.clientX,e.clientY);
   if(mode==="draw"||mode==="erase"){drawing=true;rawCtx.beginPath();rawCtx.moveTo(p.x,p.y);}
   else if(mode==="sticker"&&selectedSticker){
@@ -206,7 +200,7 @@ paintCanvas.onpointerdown=e=>{
   }
 };
 paintCanvas.onpointermove=e=>{
-  if(!drawing) return;
+  if(!drawing)return;
   const p=toImageSpace(e.clientX,e.clientY);
   rawCtx.lineWidth=size;rawCtx.lineCap="round";
   if(mode==="erase"){rawCtx.globalCompositeOperation="destination-out";}
@@ -234,7 +228,7 @@ document.getElementById("saveBtn").onclick=()=>{
   o.toBlob(b=>{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="Yiayia_Sienna_Artwork.png";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),800);});
 };
 
-/* Stickers select */
+/* Stickers */
 document.querySelectorAll("#stickers img").forEach(st=>{
   st.onclick=()=>{
     selectedSticker=st.src;mode="sticker";
@@ -243,7 +237,41 @@ document.querySelectorAll("#stickers img").forEach(st=>{
   };
 });
 
-/* Zoom and pan code unchanged from your version... */
-</script>
-</body>
-</html>
+/* ===== Zoom, pan & shortcuts ===== */
+function onWheel(e){e.preventDefault();setTargetZoomAt(e.clientX,e.clientY,1-(e.deltaY*0.001));}
+bgCanvas.addEventListener("wheel",onWheel,{passive:false});
+paintCanvas.addEventListener("wheel",onWheel,{passive:false});
+
+let rightPan=false,startX=0,startY=0;
+document.addEventListener("keydown",e=>{
+  if(e.code==="Space"&&!keyPan){keyPan=true;document.body.classList.add("panning");e.preventDefault();}
+});
+document.addEventListener("keyup",e=>{
+  if(e.code==="Space"){keyPan=false;document.body.classList.remove("panning","dragging");}
+});
+function startPan(e){
+  if(!(e.button===2||e.button===1||keyPan))return;
+  const s=screenToCanvas(e.clientX,e.clientY);
+  startX=s.x-targetX;startY=s.y-targetY;
+  rightPan=true;document.body.classList.add("dragging");
+  e.preventDefault();if(!rafId)rafId=requestAnimationFrame(animate);
+}
+function movePan(e){
+  if(!rightPan)return;
+  const s=screenToCanvas(e.clientX,e.clientY);
+  targetX=s.x-startX;targetY=s.y-startY;
+  if(!rafId)rafId=requestAnimationFrame(animate);
+}
+function endPan(){rightPan=false;document.body.classList.remove("dragging");}
+bgCanvas.addEventListener("mousedown",startPan);
+paintCanvas.addEventListener("mousedown",startPan);
+window.addEventListener("mousemove",movePan);
+window.addEventListener("mouseup",endPan);
+bgCanvas.addEventListener("contextmenu",e=>e.preventDefault());
+paintCanvas.addEventListener("contextmenu",e=>e.preventDefault());
+
+/* Mobile pinch-zoom */
+let prevDist=0,prevMid=null;
+function dist(t0,t1){return Math.hypot(t0.clientX-t1.clientX,t0.clientY-t1.clientY);}
+function mid(t0,t1){return {x:(t0.clientX+t1.clientX)/2,y:(t0.clientY+t1.clientY)/2};}
+function tStart(e){if(e.touches.length===2){e.preventDefault();prevDist=dist(e.touches[0],e.touches[1]);prevMid=mid(e.touches[0],e.touches[1]);drawing=false;if(!rafId)raf
